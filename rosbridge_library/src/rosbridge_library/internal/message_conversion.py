@@ -50,7 +50,7 @@ import sys
 if sys.version_info >= (3, 0):
     type_map = {
     "bool":    ["bool", "boolean"],
-    "int":     ["int8", "byte", "uint8", "char",
+    "int":     ["int8", "octet", "uint8", "char",
                 "int16", "uint16", "int32", "uint32",
                 "int64", "uint64", "float32", "float64"],
     "float":   ["float32", "float64", "double", "float"],
@@ -61,7 +61,7 @@ if sys.version_info >= (3, 0):
 else:
     type_map = {
     "bool":    ["bool"],
-    "int":     ["int8", "byte", "uint8", "char",
+    "int":     ["int8", "octet", "uint8", "char",
                 "int16", "uint16", "int32", "uint32",
                 "int64", "uint64", "float32", "float64"],
     "float":   ["float32", "float64"],
@@ -74,7 +74,7 @@ else:
 
 list_types = [list, tuple, np.ndarray, array.array]
 ros_time_types = ["builtin_interfaces/Time", "builtin_interfaces/Duration"]
-ros_primitive_types = ["bool", "boolean", "byte", "char", "int8", "uint8", "int16",
+ros_primitive_types = ["bool", "boolean", "octet", "char", "int8", "uint8", "int16",
                        "uint16", "int32", "uint32", "int64", "uint64",
                        "float32", "float64", "float", "double", "string"]
 ros_header_types = ["Header", "std_msgs/Header", "roslib/Header"]
