@@ -35,10 +35,11 @@ from __future__ import print_function
 
 import sys
 import time
+import signal
 
 from socket import error
 
-from threading import Thread
+from threading import Thread, Lock
 from tornado.ioloop import IOLoop
 from tornado.ioloop import PeriodicCallback
 from tornado.web import Application
@@ -58,19 +59,12 @@ from rosbridge_library.capabilities.advertise_service import AdvertiseService
 from rosbridge_library.capabilities.unadvertise_service import UnadvertiseService
 from rosbridge_library.capabilities.call_service import CallService
 
-def start_hook():
-    IOLoop.instance().start()
-
-def shutdown_hook():
-    IOLoop.instance().stop()
-
-
 class RosbridgeWebsocketNode(Node):
-    def __init__(self):
+    def __init__(self, io_loop_instance):
         super().__init__('rosbridge_websocket')
 
         RosbridgeWebSocket.node_handle = self
-
+        RosbridgeWebSocket.io_loop_instance = io_loop_instance
         ##################################################
         # Parameter handling                             #
         ##################################################
@@ -292,20 +286,37 @@ class RosbridgeWebsocketNode(Node):
                     "Retrying in {}s.".format(e, retry_startup_delay))
                 time.sleep(retry_startup_delay)
 
+class ROSThreadManager:
+    def __init__(self, args, node):
+        self.is_node_running = True
+        self.node = node
+        self.ros_thread = Thread(target=self.ros_spin)
+        self.ros_thread.start()
+    def ros_spin(self):
+        rclpy.logging.get_logger("thread_manager").info("ros thread started")
+        while self.is_node_running:
+            rclpy.spin_once(self.node, timeout_sec=0.01)
+        rclpy.logging.get_logger("thread_manager").info("ros thread terminatted")
+    def stop_thread(self):
+        self.is_node_running = False
+        self.ros_thread.join()
 def main(args=None):
     if args is None:
         args = sys.argv
 
+    # add SIGINT termination
+    signal.signal(signal.SIGINT, lambda sig, frame: io_loop.add_callback_from_signal(io_loop.stop))
+
     rclpy.init(args=args)
-    rosbridge_websocket_node = RosbridgeWebsocketNode()
+    io_loop = IOLoop.instance()
+    node = RosbridgeWebsocketNode(io_loop)
+    manager = ROSThreadManager(args, node)
+    io_loop.start()
 
-    spin_callback = PeriodicCallback(lambda: rclpy.spin_once(rosbridge_websocket_node, timeout_sec=0.01), 1)
-    spin_callback.start()
-    start_hook()
-
+    # after SIGINT recieved
+    manager.stop_thread()
     node.destroy_node()
     rclpy.shutdown()
-    shutdown_hook()  # shutdown hook to stop the server
 
 if __name__ == '__main__':
     main()

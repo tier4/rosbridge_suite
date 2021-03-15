@@ -86,7 +86,7 @@ class RosbridgeWebSocket(WebSocketHandler):
     unregister_timeout = 10.0               # seconds
     bson_only_mode = False
     node_handle = None
-
+    io_loop_instance = None
 
     @log_exceptions
     def open(self):
@@ -189,7 +189,7 @@ class RosbridgeWebSocket(WebSocketHandler):
             binary = False
 
         with self._write_lock:
-            IOLoop.instance().add_callback(partial(self.prewrite_message, message, binary))
+            self.io_loop_instance.add_callback(partial(self.prewrite_message, message, binary))
 
     @coroutine
     def prewrite_message(self, message, binary):
