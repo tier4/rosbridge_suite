@@ -119,12 +119,7 @@ def call_service(node_handle, service, args=None):
 
     client = node_handle.create_client(service_class, service)
 
-    future = client.call_async(inst)
-    spin_until_future_complete(node_handle, future)
-    if future.result() is not None:
-        # Turn the response into JSON and pass to the callback
-        json_response = extract_values(future.result())
-    else:
-        raise Exception(future.exception())
+    response = client.call(inst)
+    json_response = extract_values(response)
 
     return json_response

@@ -1,7 +1,7 @@
 import fnmatch
 from threading import Lock
 import time
-
+from rclpy.duration import Duration
 from rosbridge_library.internal.ros_loader import get_service_class
 from rosbridge_library.internal import message_conversion
 from rosbridge_library.capability import Capability
@@ -28,7 +28,7 @@ class AdvertisedServiceHandler():
         self.id_counter += 1
         return id
 
-    def handle_request(self, req):
+    def handle_request(self, req, res):
         with self.lock:
             self.active_requests += 1
         # generate a unique ID
@@ -74,8 +74,8 @@ class AdvertisedServiceHandler():
         """
         with self.lock:
             self.shutdown_requested = True
-        start_time = time.clock()
-        while time.clock() - start_time < timeout:
+        start_time = self.protocol.node_handle.get_clock().now()
+        while self.protocol.node_handle.get_clock().now() - start_time < Duration(nanoseconds = timeout * 1e9):
             time.sleep(0)
         self.protocol.node_handle.destroy_service(self.service_handle)
 
@@ -115,7 +115,7 @@ class AdvertiseService(Capability):
         # check for an existing entry
         if service_name in self.protocol.external_service_list.keys():
             self.protocol.log("warn", "Duplicate service advertised. Overwriting %s." % service_name)
-            self.protocol.external_service_list[service_name].service_handle.shutdown("Duplicate advertiser.")
+            self.protocol.external_service_list[service_name].graceful_shutdown(0.1)
             del self.protocol.external_service_list[service_name]
 
         # setup and store the service information
