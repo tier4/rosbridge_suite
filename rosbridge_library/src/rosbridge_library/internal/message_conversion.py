@@ -78,11 +78,12 @@ ros_primitive_types = ["bool", "boolean", "octet", "char", "int8", "uint8", "int
                        "uint16", "int32", "uint32", "int64", "uint64",
                        "float32", "float64", "float", "double", "string"]
 ros_header_types = ["Header", "std_msgs/Header", "roslib/Header"]
-ros_binary_types = ["uint8[]", "char[]"]
+ros_binary_types = ["uint8[]", "char[]", "octet"]
 list_tokens = re.compile('<(.+?)>')
 bounded_array_tokens = re.compile('(.+)\[.*\]')
 ros_binary_types_list_braces = [("uint8[]", re.compile(r'uint8\[[^\]]*\]')),
-                                ("char[]", re.compile(r'char\[[^\]]*\]'))]
+                                ("char[]", re.compile(r'char\[[^\]]*\]')),
+                                ("octet[]", re.compile(r'octet\[[^\]]*\]'))]
 
 binary_encoder = None
 binary_encoder_type = 'default'
@@ -255,12 +256,12 @@ def _to_inst(msg, rostype, roottype, inst=None, stack=[]):
 def _to_binary_inst(msg):
     if type(msg) in string_types:
         try:
-            return standard_b64decode(msg)
+            return msg.encode("utf-8")
         except :
             return msg
     else:
         try:
-            return bytes(bytearray(msg))
+            return bytes([msg])
         except:
             return msg
 
