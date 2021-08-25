@@ -50,11 +50,12 @@ import sys
 if sys.version_info >= (3, 0):
     type_map = {
     "bool":    ["bool", "boolean"],
-    "int":     ["int8", "octet", "uint8", "char",
+    "int":     ["int8", "uint8", "char",
                 "int16", "uint16", "int32", "uint32",
                 "int64", "uint64", "float32", "float64"],
     "float":   ["float32", "float64", "double", "float"],
-    "str":     ["string"]
+    "str":     ["string"],
+    "binary":  ["octet"]
     }
     primitive_types = [bool, int, float]
     python2 = False
@@ -78,12 +79,11 @@ ros_primitive_types = ["bool", "boolean", "octet", "char", "int8", "uint8", "int
                        "uint16", "int32", "uint32", "int64", "uint64",
                        "float32", "float64", "float", "double", "string"]
 ros_header_types = ["Header", "std_msgs/Header", "roslib/Header"]
-ros_binary_types = ["uint8[]", "char[]", "octet"]
+ros_binary_types = ["uint8[]", "char[]"]
 list_tokens = re.compile('<(.+?)>')
 bounded_array_tokens = re.compile('(.+)\[.*\]')
 ros_binary_types_list_braces = [("uint8[]", re.compile(r'uint8\[[^\]]*\]')),
-                                ("char[]", re.compile(r'char\[[^\]]*\]')),
-                                ("octet[]", re.compile(r'octet\[[^\]]*\]'))]
+                                ("char[]", re.compile(r'char\[[^\]]*\]'))]
 
 binary_encoder = None
 binary_encoder_type = 'default'
@@ -173,7 +173,7 @@ def _from_inst(inst, rostype):
     for binary_type, expression in ros_binary_types_list_braces:
         if expression.sub(binary_type, rostype) in ros_binary_types:
             encoded = get_encoder()(inst)
-            return encoded if python2 else inst
+            return encoded if python2 else encoded.decode('ascii')
 
     # Check for time or duration
     if rostype in ros_time_types:
@@ -299,7 +299,9 @@ def _to_primitive_inst(msg, rostype, roottype, stack):
         msg = float(msg)
 
     msgtype = type(msg)
-    if msgtype in primitive_types and rostype in type_map[msgtype.__name__]:
+    if rostype in type_map['binary']:
+        return _to_binary_inst(msg)
+    elif msgtype in primitive_types and rostype in type_map[msgtype.__name__]:
         return msg
     elif msgtype in string_types and rostype in type_map[msgtype.__name__]:
         return msg.encode("utf-8", "ignore") if python2 else msg
