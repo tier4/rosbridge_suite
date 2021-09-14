@@ -33,6 +33,7 @@
 
 from threading import Lock
 
+from rclpy.qos_event import SubscriptionEventCallbacks
 from rosbridge_library.internal import ros_loader
 from rosbridge_library.internal.message_conversion import msg_class_type_repr
 from rosbridge_library.internal.topics import TopicNotEstablishedException
@@ -97,12 +98,16 @@ class MultiSubscriber():
         if topic_type is not None and topic_type != msg_type_string:
             raise TypeConflictException(topic, topic_type, msg_type_string)
 
-        # Get publishers info
-        publishers_info = node_handle.get_publishers_info_by_topic(topic)
+        # Set incompatible_qos callback
+        def _incompatible_qos_callback(event):
+            logger = node_handle.get_logger()
+            logger.warn(
+                "Incompatible QoS in topic '{}' requesting. Reconnect".format(topic))
+            self.subscriber = self.create_subscription()
 
-        # Select QoS
-        default_qos_profile = 10
-        qos_profile = publishers_info[0].qos_profile if publishers_info else default_qos_profile
+        self.event_callbacks = SubscriptionEventCallbacks(
+            incompatible_qos=_incompatible_qos_callback
+        )
 
         # Create the subscriber and associated member variables
         # Subscriptions is initialized with the current client to start with.
@@ -111,9 +116,22 @@ class MultiSubscriber():
         self.topic = topic
         self.msg_class = msg_class
         self.node_handle = node_handle
-        self.subscriber = node_handle.create_subscription(msg_class, topic, self.callback, qos_profile)
+        self.subscriber = self.create_subscription()
         self.new_subscriber = None
         self.new_subscriptions = {}
+
+    def create_subscription(self):
+        # Get publishers info
+        publishers_info = self.node_handle.get_publishers_info_by_topic(self.topic)
+
+        # Select QoS
+        default_qos_profile = 10
+        qos_profile = publishers_info[0].qos_profile if publishers_info else default_qos_profile
+
+        # Create subscription
+        return self.node_handle.create_subscription(
+            self.msg_class, self.topic, self.callback, qos_profile, event_callbacks=self.event_callbacks
+        )
 
     def unregister(self):
         self.node_handle.destroy_subscription(self.subscriber)
