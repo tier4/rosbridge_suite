@@ -100,12 +100,9 @@ class MultiSubscriber():
         # Get publishers info
         publishers_info = node_handle.get_publishers_info_by_topic(topic)
 
-        # If it's not established, exception
-        if not publishers_info:
-            raise TopicNotEstablishedException(topic)
-
-        # Use publisher's QoS profile
-        qos_profile = publishers_info[0].qos_profile
+        # Select QoS
+        default_qos_profile = 10
+        qos_profile = publishers_info[0].qos_profile if publishers_info else default_qos_profile
 
         # Create the subscriber and associated member variables
         # Subscriptions is initialized with the current client to start with.
