@@ -1,14 +1,16 @@
 #!/usr/bin/env python
 import unittest
 
-import rospy
-import rostest
+import rclpy
 from rosbridge_library.internal import pngcompression
 
 
 class TestCompression(unittest.TestCase):
     def setUp(self):
-        rospy.init_node("test_compression")
+        rclpy.init()
+
+    def tearDown(self):
+        rclpy.shutdown()
 
     def test_compress(self):
         bytes = list(range(128)) * 10000
@@ -23,9 +25,3 @@ class TestCompression(unittest.TestCase):
         self.assertNotEqual(string, encoded)
         decoded = pngcompression.decode(encoded)
         self.assertEqual(string, decoded)
-
-
-PKG = "rosbridge_library"
-NAME = "test_compression"
-if __name__ == "__main__":
-    rostest.unitrun(PKG, NAME, TestCompression)

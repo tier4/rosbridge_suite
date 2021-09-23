@@ -3,12 +3,12 @@ import random
 import time
 import unittest
 
-import rospy
-import rostest
+import rclpy
+from rcl_interfaces.srv import GetParameters
+from rclpy.node import Node
 from rosbridge_library.internal import message_conversion as c
 from rosbridge_library.internal import ros_loader, services
 from rosbridge_library.internal.message_conversion import FieldTypeMismatchException
-from roscpp.srv import GetLoggers
 
 
 def populate_random_args(d):
@@ -32,8 +32,9 @@ def populate_random_args(d):
 class ServiceTester:
     def __init__(self, name, srv_type):
         self.name = name
+        self.node = Node(name)
         self.srvClass = ros_loader.get_service_class(srv_type)
-        self.service = rospy.Service(name, self.srvClass, self.callback)
+        self.service = self.node.create_service(self.srvClass, name, self.callback)
 
     def start(self):
         req = self.srvClass._request_class()
@@ -76,7 +77,11 @@ class ServiceTester:
 
 class TestServices(unittest.TestCase):
     def setUp(self):
-        rospy.init_node("test_services")
+        rclpy.init()
+        self.node = Node("test_node")
+
+    def tearDown(self):
+        rclpy.shutdown()
 
     def msgs_equal(self, msg1, msg2):
         if isinstance(msg1, str) and isinstance(msg2, str):
@@ -128,14 +133,14 @@ class TestServices(unittest.TestCase):
             services.args_to_service_request_instance("", cls._request_class(), args)
 
     def test_service_call(self):
-        """Test a simple getloggers service call"""
+        """Test a simple get_parameters service call"""
         # First, call the service the 'proper' way
-        p = rospy.ServiceProxy(rospy.get_name() + "/get_loggers", GetLoggers)
+        p = self.node.create_client(GetParameters, self.node.get_name() + "/get_parameters")
         p.wait_for_service(0.5)
         ret = p()
 
         # Now, call using the services
-        json_ret = services.call_service(rospy.get_name() + "/get_loggers")
+        json_ret = services.call_service(self.node.get_name() + "/get_parameters")
         for x, y in zip(ret.loggers, json_ret["loggers"]):
             self.assertEqual(x.name, y["name"])
             self.assertEqual(x.level, y["level"])
@@ -143,7 +148,7 @@ class TestServices(unittest.TestCase):
     def test_service_caller(self):
         """Same as test_service_call but via the thread caller"""
         # First, call the service the 'proper' way
-        p = rospy.ServiceProxy(rospy.get_name() + "/get_loggers", GetLoggers)
+        p = self.node.create_client(GetParameters, self.node.get_name() + "/get_parameters")
         p.wait_for_service(0.5)
         ret = p()
 
@@ -156,7 +161,9 @@ class TestServices(unittest.TestCase):
             raise Exception()
 
         # Now, call using the services
-        services.ServiceCaller(rospy.get_name() + "/get_loggers", None, success, error).start()
+        services.ServiceCaller(
+            self.node.get_name() + "/get_parameters", None, success, error
+        ).start()
 
         time.sleep(0.5)
 
@@ -192,17 +199,14 @@ class TestServices(unittest.TestCase):
 
     def test_random_service_types(self):
         common = [
-            "roscpp/GetLoggers",
-            "roscpp/SetLoggerLevel",
+            "rcl_interfaces/GetParameters",
+            "rcl_interfaces/SetParameters",
             "std_srvs/Empty",
             "nav_msgs/GetMap",
             "nav_msgs/GetPlan",
             "sensor_msgs/SetCameraInfo",
-            "topic_tools/MuxAdd",
-            "topic_tools/MuxSelect",
             "tf2_msgs/FrameGraph",
-            "rospy_tutorials/BadTwoInts",
-            "rospy_tutorials/AddTwoInts",
+            "example_interfaces/AddTwoInts",
         ]
         ts = []
         for srv in common:
@@ -214,9 +218,3 @@ class TestServices(unittest.TestCase):
 
         for t in ts:
             t.validate(self.msgs_equal)
-
-
-PKG = "rosbridge_library"
-NAME = "test_services"
-if __name__ == "__main__":
-    rostest.unitrun(PKG, NAME, TestServices)

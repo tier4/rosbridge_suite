@@ -3,8 +3,8 @@ import time
 import unittest
 from json import dumps, loads
 
-import rospy
-import rostest
+import rclpy
+from rclpy.node import Node
 from rosbridge_library.capabilities import subscribe
 from rosbridge_library.protocol import (
     InvalidArgumentException,
@@ -16,7 +16,11 @@ from std_msgs.msg import String
 
 class TestSubscribe(unittest.TestCase):
     def setUp(self):
-        rospy.init_node("test_subscribe")
+        rclpy.init()
+        self.node = Node("test_node")
+
+    def tearDown(self):
+        rclpy.shutdown()
 
     def dummy_cb(self, msg):
         pass
@@ -104,15 +108,9 @@ class TestSubscribe(unittest.TestCase):
 
         sub.subscribe(loads(dumps({"op": "subscribe", "topic": topic, "type": msg_type})))
 
-        p = rospy.Publisher(topic, String, queue_size=5)
+        p = self.node.create_publisher(String, topic, queue_size=5)
         time.sleep(0.25)
         p.publish(msg)
 
         time.sleep(0.25)
         self.assertEqual(received["msg"]["msg"]["data"], msg.data)
-
-
-PKG = "rosbridge_library"
-NAME = "test_subscribe"
-if __name__ == "__main__":
-    rostest.unitrun(PKG, NAME, TestSubscribe)

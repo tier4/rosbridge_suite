@@ -3,21 +3,26 @@ import time
 import unittest
 from json import dumps, loads
 
-import rospy
-import rostest
+import rclpy
+from rcl_interfaces.srv import GetParameterTypes
+from rclpy.clock import Clock, Duration
+from rclpy.node import Node
 from rosbridge_library.capabilities.call_service import CallService
 from rosbridge_library.protocol import (
     InvalidArgumentException,
     MissingArgumentException,
     Protocol,
 )
-from roscpp.srv import GetLoggers
 from std_srvs.srv import SetBool
 
 
 class TestCallService(unittest.TestCase):
     def setUp(self):
-        rospy.init_node("test_call_service")
+        rclpy.init()
+        self.node = Node("test_node")
+
+    def tearDown(self):
+        rclpy.shutdown()
 
     def test_missing_arguments(self):
         proto = Protocol("test_missing_arguments")
@@ -34,13 +39,17 @@ class TestCallService(unittest.TestCase):
 
     def test_call_service_works(self):
         # Prepare to call the service the 'proper' way
-        p = rospy.ServiceProxy(rospy.get_name() + "/get_loggers", GetLoggers)
+        p = self.node.create_client(
+            GetParameterTypes, self.node.get_name() + "/get_parameter_types"
+        )
         p.wait_for_service()
         time.sleep(1.0)
 
         proto = Protocol("test_call_service_works")
         s = CallService(proto)
-        msg = loads(dumps({"op": "call_service", "service": rospy.get_name() + "/get_loggers"}))
+        msg = loads(
+            dumps({"op": "call_service", "service": self.node.get_name() + "/get_parameter_types"})
+        )
 
         received = {"msg": None, "arrived": False}
 
@@ -53,8 +62,8 @@ class TestCallService(unittest.TestCase):
         s.call_service(msg)
 
         timeout = 5.0
-        start = rospy.Time.now()
-        while rospy.Time.now() - start < rospy.Duration(timeout):
+        start = Clock().now()
+        while Clock().now() - start < Duration(seconds=timeout):
             if received["arrived"]:
                 break
             time.sleep(0.1)
@@ -70,7 +79,7 @@ class TestCallService(unittest.TestCase):
 
     def test_call_service_fail(self):
         # Dummy service that instantly fails
-        service_server = rospy.Service("set_bool_fail", SetBool, lambda req: None)
+        service_server = self.node.create_service(SetBool, "set_bool_fail", lambda req: None)
 
         proto = Protocol("test_call_service_fail")
         s = CallService(proto)
@@ -78,7 +87,7 @@ class TestCallService(unittest.TestCase):
             dumps(
                 {
                     "op": "call_service",
-                    "service": rospy.get_name() + "/set_bool_fail",
+                    "service": self.node.get_name() + "/set_bool_fail",
                     "args": "[ true ]",
                 }
             )
@@ -95,16 +104,10 @@ class TestCallService(unittest.TestCase):
         s.call_service(send_msg)
 
         timeout = 5.0
-        start = rospy.Time.now()
-        while rospy.Time.now() - start < rospy.Duration(timeout):
+        start = Clock().now()
+        while Clock().now() - start < Duration(seconds=timeout):
             if received["arrived"]:
                 break
             time.sleep(0.1)
 
         self.assertFalse(received["msg"]["result"])
-
-
-PKG = "rosbridge_library"
-NAME = "test_call_service"
-if __name__ == "__main__":
-    rostest.unitrun(PKG, NAME, TestCallService)

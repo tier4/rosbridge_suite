@@ -1,9 +1,10 @@
 #!/usr/bin/env python
+import time
 import unittest
 from json import dumps, loads
 
-import rospy
-import rostest
+import rclpy
+from rclpy.node import Node
 from rosbridge_library.capabilities.advertise_service import AdvertiseService
 from rosbridge_library.capabilities.call_service import CallService
 from rosbridge_library.capabilities.service_response import ServiceResponse
@@ -13,21 +14,27 @@ from rosbridge_library.protocol import (
     MissingArgumentException,
     Protocol,
 )
+from std_srvs.srv import SetBool
 
 
 class TestServiceCapabilities(unittest.TestCase):
     def setUp(self):
+        rclpy.init()
+        self.node = Node("test_node")
+
         self.proto = Protocol(self._testMethodName)
         # change the log function so we can verify errors are logged
         self.proto.log = self.mock_log
-        # change the send callback so we can access the rosbridge messages
-        # being sent
+        # change the send callback so we can access the rosbridge messages being sent
         self.proto.send = self.local_send_cb
         self.advertise = AdvertiseService(self.proto)
         self.unadvertise = UnadvertiseService(self.proto)
         self.response = ServiceResponse(self.proto)
         self.received_message = None
         self.log_entries = []
+
+    def tearDown(self):
+        rclpy.shutdown()
 
     def local_send_cb(self, msg):
         self.received_message = msg
@@ -47,8 +54,7 @@ class TestServiceCapabilities(unittest.TestCase):
         response_msg = loads(dumps({"op": "service_response"}))
         self.assertRaises(MissingArgumentException, self.response.service_response, response_msg)
 
-        # this message has the optional fields, with correct types, but not the
-        # required ones
+        # this message has the optional fields, with correct types, but not the required ones
         response_msg = loads(
             dumps({"op": "service_response", "id": "dummy_service", "values": "none"})
         )
@@ -71,9 +77,8 @@ class TestServiceCapabilities(unittest.TestCase):
         )
         self.advertise.advertise_service(advertise_msg)
 
-        # This throws an exception if the timeout is exceeded (i.e. the service
-        # is not properly advertised)
-        rospy.wait_for_service(service_path, 1.0)
+        # This throws an exception if the timeout is exceeded (i.e. the service is not properly advertised)
+        self.node.create_client(SetBool, service_path).wait_for_service(1.0)
 
     def test_call_advertised_service(self):
         service_path = "/set_bool_2"
@@ -88,8 +93,8 @@ class TestServiceCapabilities(unittest.TestCase):
         )
         self.advertise.advertise_service(advertise_msg)
 
-        # Call the service via rosbridge because rospy.ServiceProxy.call() is
-        # blocking
+        # TODO: Fix comment for rclpy
+        # Call the service via rosbridge because rospy.ServiceProxy.call() is blocking
         call_service = CallService(self.proto)
         call_service.call_service(
             loads(
@@ -106,7 +111,7 @@ class TestServiceCapabilities(unittest.TestCase):
 
         loop_iterations = 0
         while self.received_message is None:
-            rospy.sleep(rospy.Duration(0.5))
+            time.sleep(0.5)
             loop_iterations += 1
             if loop_iterations > 3:
                 self.fail(
@@ -135,7 +140,7 @@ class TestServiceCapabilities(unittest.TestCase):
 
         loop_iterations = 0
         while self.received_message is None:
-            rospy.sleep(rospy.Duration(0.5))
+            time.sleep(0.5)
             loop_iterations += 1
             if loop_iterations > 3:
                 self.fail(
@@ -143,8 +148,7 @@ class TestServiceCapabilities(unittest.TestCase):
                 )
 
         self.assertFalse(self.received_message is None)
-        # Rosbridge should forward the response message to the "client"
-        # (i.e. our custom send function, see setUp())
+        # Rosbridge should forward the response message to the "client" (i.e. our custom send function, see setUp())
         self.assertEqual(self.received_message["op"], "service_response")
         self.assertTrue(self.received_message["result"])
 
@@ -161,8 +165,8 @@ class TestServiceCapabilities(unittest.TestCase):
         )
         self.advertise.advertise_service(advertise_msg)
 
-        # Call the service via rosbridge because rospy.ServiceProxy.call() is
-        # blocking
+        # TODO: Fix comment for rclpy
+        # Call the service via rosbridge because rospy.ServiceProxy.call() is blocking
         call_service = CallService(self.proto)
         call_service.call_service(
             loads(
@@ -179,7 +183,7 @@ class TestServiceCapabilities(unittest.TestCase):
 
         loop_iterations = 0
         while self.received_message is None:
-            rospy.sleep(rospy.Duration(0.5))
+            time.sleep(0.5)
             loop_iterations += 1
             if loop_iterations > 3:
                 self.fail(
@@ -198,7 +202,7 @@ class TestServiceCapabilities(unittest.TestCase):
 
         loop_iterations = 0
         while self.received_message is None:
-            rospy.sleep(rospy.Duration(0.5))
+            time.sleep(0.5)
             loop_iterations += 1
             if loop_iterations > 3:
                 self.fail(
@@ -206,14 +210,6 @@ class TestServiceCapabilities(unittest.TestCase):
                 )
 
         self.assertFalse(self.received_message is None)
-        # Rosbridge should abort the existing service call with an error
-        # (i.e. "result" should be False)
+        # Rosbridge should abort the existing service call with an error (i.e. "result" should be False)
         self.assertEqual(self.received_message["op"], "service_response")
         self.assertFalse(self.received_message["result"])
-
-
-PKG = "rosbridge_library"
-NAME = "test_service_capabilities"
-if __name__ == "__main__":
-    rospy.init_node(NAME)
-    rostest.rosrun(PKG, NAME, TestServiceCapabilities)

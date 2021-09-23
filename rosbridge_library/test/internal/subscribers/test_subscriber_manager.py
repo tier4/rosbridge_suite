@@ -2,8 +2,9 @@
 import unittest
 from time import sleep
 
-import rospy
-import rostest
+import rclpy
+from rclpy.node import Node
+from ros2topic.api import get_topic_names_and_types
 from rosbridge_library.internal.subscribers import manager
 from rosbridge_library.internal.topics import (
     TopicNotEstablishedException,
@@ -15,10 +16,14 @@ from std_msgs.msg import String
 
 class TestSubscriberManager(unittest.TestCase):
     def setUp(self):
-        rospy.init_node("test_subscriber_manager")
+        rclpy.init()
+        self.node = Node("test_node")
+
+    def tearDown(self):
+        rclpy.shutdown()
 
     def is_topic_published(self, topicname):
-        return topicname in dict(rospy.get_published_topics()).keys()
+        return topicname in dict(get_topic_names_and_types()).keys()
 
     def is_topic_subscribed(self, topicname):
         return topicname in dict(Master("test_subscriber_manager").getSystemState()[1])
@@ -128,7 +133,7 @@ class TestSubscriberManager(unittest.TestCase):
 
         self.assertFalse(self.is_topic_subscribed(topic))
 
-        rospy.Subscriber(topic, String, None)
+        self.node.create_subscription(String, topic, None)
 
         self.assertTrue(self.is_topic_subscribed(topic))
         self.assertFalse(topic in manager._subscribers)
@@ -177,7 +182,7 @@ class TestSubscriberManager(unittest.TestCase):
         msg = String()
         msg.data = "dsajfadsufasdjf"
 
-        pub = rospy.Publisher(topic, String)
+        pub = self.node.create_publisher(String, topic)
         received = {"msg": None}
 
         def cb(msg):
@@ -188,9 +193,3 @@ class TestSubscriberManager(unittest.TestCase):
         pub.publish(msg)
         sleep(0.5)
         self.assertEqual(msg.data, received["msg"]["data"])
-
-
-PKG = "rosbridge_library"
-NAME = "test_subscriber_manager"
-if __name__ == "__main__":
-    rostest.unitrun(PKG, NAME, TestSubscriberManager)

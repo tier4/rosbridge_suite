@@ -2,7 +2,6 @@
 import struct
 import unittest
 
-import rostest
 from rosbridge_library.internal.cbor_conversion import (
     TAGGED_ARRAY_FORMATS,
     extract_cbor_values,
@@ -167,9 +166,3 @@ class TestCBORConversion(unittest.TestCase):
         keys = extracted.keys()
         for key in keys:
             self.assertEqual(type(key), str)
-
-
-PKG = "rosbridge_library"
-NAME = "test_cbor_conversion"
-if __name__ == "__main__":
-    rostest.unitrun(PKG, NAME, TestCBORConversion)

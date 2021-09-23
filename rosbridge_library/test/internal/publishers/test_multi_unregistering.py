@@ -2,15 +2,19 @@
 import unittest
 from time import sleep
 
-import rospy
-import rostest
+import rclpy
+from rclpy.node import Node
 from rosbridge_library.internal import ros_loader
 from rosbridge_library.internal.publishers import MultiPublisher
 
 
 class TestMultiUnregistering(unittest.TestCase):
     def setUp(self):
-        rospy.init_node("test_multi_unregistering")
+        rclpy.init()
+        self.node = Node("test_node")
+
+    def tearDown(self):
+        rclpy.shutdown()
 
     def test_publish_once(self):
         """Make sure that publishing works"""
@@ -23,7 +27,7 @@ class TestMultiUnregistering(unittest.TestCase):
         def cb(msg):
             received["msg"] = msg
 
-        rospy.Subscriber(topic, ros_loader.get_message_class(msg_type), cb)
+        self.node.create_subscription(ros_loader.get_message_class(msg_type), topic, cb)
         p = MultiPublisher(topic, msg_type)
         p.publish(msg)
 
@@ -42,7 +46,7 @@ class TestMultiUnregistering(unittest.TestCase):
         def cb(msg):
             received["msg"] = msg
 
-        rospy.Subscriber(topic, ros_loader.get_message_class(msg_type), cb)
+        self.node.create_subscription(ros_loader.get_message_class(msg_type), topic, cb)
         p = MultiPublisher(topic, msg_type)
         p.publish(msg)
 
@@ -51,6 +55,7 @@ class TestMultiUnregistering(unittest.TestCase):
         self.assertEqual(received["msg"].data, msg["data"])
 
         p.unregister()
+        # TODO: Fix comment for rclpy
         # The publisher went away at time T. Here's the timeline of the events:
         # T+1 seconds - the subscriber will retry to reconnect - fail
         # T+3 seconds - the subscriber will retry to reconnect - fail
@@ -77,9 +82,3 @@ class TestMultiUnregistering(unittest.TestCase):
         self.assertIsNone(received["msg"])
         sleep(3)
         self.assertEqual(received["msg"].data, msg["data"])
-
-
-PKG = "rosbridge_library"
-NAME = "test_multi_unregistering"
-if __name__ == "__main__":
-    rostest.unitrun(PKG, NAME, TestMultiUnregistering)

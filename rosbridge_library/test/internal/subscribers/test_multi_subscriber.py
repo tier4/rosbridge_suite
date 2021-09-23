@@ -2,8 +2,9 @@
 import unittest
 from time import sleep
 
-import rospy
-import rostest
+import rclpy
+from rclpy.node import Node
+from ros2topic.api import get_topic_names_and_types
 from rosbridge_library.internal.subscribers import MultiSubscriber
 from rosbridge_library.internal.topics import TypeConflictException
 from rosgraph import Master
@@ -12,10 +13,14 @@ from std_msgs.msg import Int32, String
 
 class TestMultiSubscriber(unittest.TestCase):
     def setUp(self):
-        rospy.init_node("test_multi_subscriber")
+        rclpy.init()
+        self.node = Node("test_node")
+
+    def tearDown(self):
+        rclpy.shutdown()
 
     def is_topic_published(self, topicname):
-        return topicname in dict(rospy.get_published_topics()).keys()
+        return topicname in dict(get_topic_names_and_types()).keys()
 
     def is_topic_subscribed(self, topicname):
         return topicname in dict(Master("test_multi_subscriber").getSystemState()[1])
@@ -89,7 +94,7 @@ class TestMultiSubscriber(unittest.TestCase):
         msg = String()
         msg.data = "dsajfadsufasdjf"
 
-        pub = rospy.Publisher(topic, String)
+        pub = self.node.create_publisher(String, topic)
         multi = MultiSubscriber(topic, msg_type)
 
         received = {"msg": None}
@@ -110,7 +115,7 @@ class TestMultiSubscriber(unittest.TestCase):
 
         numbers = list(range(100))
 
-        pub = rospy.Publisher(topic, Int32)
+        pub = self.node.create_publisher(Int32, topic)
         multi = MultiSubscriber(topic, msg_type)
 
         received = {"msgs": []}
@@ -135,7 +140,7 @@ class TestMultiSubscriber(unittest.TestCase):
         msg = String()
         msg.data = "dsajfadsufasdjf"
 
-        pub = rospy.Publisher(topic, String)
+        pub = self.node.create_publisher(String, topic)
         multi = MultiSubscriber(topic, msg_type)
 
         received = {"count": 0}
@@ -163,7 +168,7 @@ class TestMultiSubscriber(unittest.TestCase):
         msg = String()
         msg.data = "dsajfadsufasdjf"
 
-        pub = rospy.Publisher(topic, String)
+        pub = self.node.create_publisher(String, topic)
         multi = MultiSubscriber(topic, msg_type)
 
         received = {"msg1": None, "msg2": None}
@@ -181,9 +186,3 @@ class TestMultiSubscriber(unittest.TestCase):
         sleep(0.5)
         self.assertEqual(msg.data, received["msg1"]["data"])
         self.assertEqual(msg.data, received["msg2"]["data"])
-
-
-PKG = "rosbridge_library"
-NAME = "test_multi_subscriber"
-if __name__ == "__main__":
-    rostest.unitrun(PKG, NAME, TestMultiSubscriber)

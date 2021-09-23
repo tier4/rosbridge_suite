@@ -2,8 +2,9 @@
 import unittest
 from time import sleep
 
-import rospy
-import rostest
+import rclpy
+from rclpy.node import Node
+from ros2topic.api import get_topic_names_and_types
 from rosbridge_library.internal.message_conversion import FieldTypeMismatchException
 from rosbridge_library.internal.publishers import manager
 from rosbridge_library.internal.topics import (
@@ -15,11 +16,15 @@ from std_msgs.msg import String
 
 class TestPublisherManager(unittest.TestCase):
     def setUp(self):
-        rospy.init_node("test_publisher_manager")
+        rclpy.init()
+        self.node = Node("test_node")
         manager.unregister_timeout = 1.0
 
+    def tearDown(self):
+        rclpy.shutdown()
+
     def is_topic_published(self, topicname):
-        return topicname in dict(rospy.get_published_topics()).keys()
+        return topicname in dict(get_topic_names_and_types()).keys()
 
     def test_register_publisher(self):
         """Register a publisher on a clean topic with a good msg type"""
@@ -134,7 +139,7 @@ class TestPublisherManager(unittest.TestCase):
 
         self.assertFalse(self.is_topic_published(topic))
 
-        rospy.Publisher(topic, String)
+        self.node.create_publisher(String, topic)
 
         self.assertTrue(self.is_topic_published(topic))
         self.assertFalse(topic in manager._publishers)
@@ -193,7 +198,7 @@ class TestPublisherManager(unittest.TestCase):
         def cb(msg):
             received["msg"] = msg
 
-        rospy.Subscriber(topic, String, cb)
+        self.node.create_subscription(String, topic, cb)
         manager.publish(client, topic, msg)
         sleep(0.5)
 
@@ -208,9 +213,3 @@ class TestPublisherManager(unittest.TestCase):
 
         manager.register(client, topic, msg_type)
         self.assertRaises(FieldTypeMismatchException, manager.publish, client, topic, msg)
-
-
-PKG = "rosbridge_library"
-NAME = "test_publisher_manager"
-if __name__ == "__main__":
-    rostest.unitrun(PKG, NAME, TestPublisherManager)

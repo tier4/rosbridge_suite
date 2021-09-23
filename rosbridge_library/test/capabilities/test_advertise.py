@@ -3,8 +3,8 @@ import unittest
 from json import dumps, loads
 from time import sleep
 
-import rospy
-import rostest
+import rclpy
+from ros2topic.api import get_topic_names_and_types
 from rosbridge_library.capabilities.advertise import Advertise
 from rosbridge_library.internal import ros_loader
 from rosbridge_library.internal.publishers import manager
@@ -17,11 +17,14 @@ from rosbridge_library.protocol import (
 
 class TestAdvertise(unittest.TestCase):
     def setUp(self):
-        rospy.init_node("test_advertise")
+        rclpy.init()
         manager.unregister_timeout = 1.0
 
+    def tearDown(self):
+        rclpy.shutdown()
+
     def is_topic_published(self, topicname):
-        return topicname in dict(rospy.get_published_topics()).keys()
+        return topicname in dict(get_topic_names_and_types()).keys()
 
     def test_missing_arguments(self):
         proto = Protocol("hello")
@@ -124,12 +127,12 @@ class TestAdvertise(unittest.TestCase):
 
     def test_invalid_msg_classes(self):
         nonexistent = [
-            "roscpp/Time",
-            "roscpp/Duration",
-            "roscpp/Header",
-            "rospy/Time",
-            "rospy/Duration",
-            "rospy/Header",
+            "rclcpp/Time",
+            "rclcpp/Duration",
+            "rclcpp/Header",
+            "rclpy/Time",
+            "rclpy/Duration",
+            "rclpy/Header",
             "std_msgs/Spool",
             "geometry_msgs/Tetrahedron",
             "sensor_msgs/TelepathyUnit",
@@ -183,9 +186,3 @@ class TestAdvertise(unittest.TestCase):
         self.assertTrue(self.is_topic_published(topic))
         sleep(manager.unregister_timeout * 1.1)
         self.assertFalse(self.is_topic_published(topic))
-
-
-PKG = "rosbridge_library"
-NAME = "test_advertise"
-if __name__ == "__main__":
-    rostest.unitrun(PKG, NAME, TestAdvertise)

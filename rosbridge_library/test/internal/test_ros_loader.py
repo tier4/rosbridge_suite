@@ -1,14 +1,16 @@
 #!/usr/bin/env python
 import unittest
 
-import rospy
-import rostest
+import rclpy
 from rosbridge_library.internal import ros_loader
 
 
 class TestROSLoader(unittest.TestCase):
     def setUp(self):
-        rospy.init_node("test_ros_loader")
+        rclpy.init()
+
+    def tearDown(self):
+        rclpy.shutdown()
 
     def test_bad_msgnames(self):
         bad = [
@@ -214,12 +216,12 @@ class TestROSLoader(unittest.TestCase):
 
     def test_nonexistent_msg_classnames(self):
         nonexistent = [
-            "roscpp/Time",
-            "roscpp/Duration",
-            "roscpp/Header",
-            "rospy/Time",
-            "rospy/Duration",
-            "rospy/Header",
+            "rclcpp/Time",
+            "rclcpp/Duration",
+            "rclcpp/Header",
+            "rclpy/Time",
+            "rclpy/Duration",
+            "rclpy/Header",
             "std_msgs/Spool",
             "geometry_msgs/Tetrahedron",
             "sensor_msgs/TelepathyUnit",
@@ -272,15 +274,15 @@ class TestROSLoader(unittest.TestCase):
 
     def test_irregular_servicenames(self):
         irregular = [
-            "roscpp//GetLoggers",
-            "/roscpp/GetLoggers/",
-            "/roscpp/GetLoggers",
-            "//roscpp/GetLoggers",
-            "/roscpp//GetLoggers",
-            "roscpp/GetLoggers//",
-            "/roscpp/GetLoggers//",
-            "roscpp/GetLoggers/",
-            "roscpp//GetLoggers//",
+            "rclcpp//GetLoggers",
+            "/rclcpp/GetLoggers/",
+            "/rclcpp/GetLoggers",
+            "//rclcpp/GetLoggers",
+            "/rclcpp//GetLoggers",
+            "rclcpp/GetLoggers//",
+            "/rclcpp/GetLoggers//",
+            "rclcpp/GetLoggers/",
+            "rclcpp//GetLoggers//",
         ]
         for x in irregular:
             self.assertNotEqual(ros_loader.get_service_class(x), None)
@@ -290,8 +292,8 @@ class TestROSLoader(unittest.TestCase):
 
     def test_common_servicenames(self):
         common = [
-            "roscpp/GetLoggers",
-            "roscpp/SetLoggerLevel",
+            "rclcpp/GetLoggers",
+            "rclcpp/SetLoggerLevel",
             "std_srvs/Empty",
             "nav_msgs/GetMap",
             "nav_msgs/GetPlan",
@@ -299,8 +301,8 @@ class TestROSLoader(unittest.TestCase):
             "topic_tools/MuxAdd",
             "topic_tools/MuxSelect",
             "tf2_msgs/FrameGraph",
-            "rospy_tutorials/BadTwoInts",
-            "rospy_tutorials/AddTwoInts",
+            "rclpy_tutorials/BadTwoInts",
+            "rclpy_tutorials/AddTwoInts",
         ]
         for x in common:
             self.assertNotEqual(ros_loader.get_service_class(x), None)
@@ -311,8 +313,8 @@ class TestROSLoader(unittest.TestCase):
 
     def test_srv_cache(self):
         common = [
-            "roscpp/GetLoggers",
-            "roscpp/SetLoggerLevel",
+            "rclcpp/GetLoggers",
+            "rclcpp/SetLoggerLevel",
             "std_srvs/Empty",
             "nav_msgs/GetMap",
             "nav_msgs/GetPlan",
@@ -320,8 +322,8 @@ class TestROSLoader(unittest.TestCase):
             "topic_tools/MuxAdd",
             "topic_tools/MuxSelect",
             "tf2_msgs/FrameGraph",
-            "rospy_tutorials/BadTwoInts",
-            "rospy_tutorials/AddTwoInts",
+            "rclpy_tutorials/BadTwoInts",
+            "rclpy_tutorials/AddTwoInts",
         ]
         for x in common:
             self.assertNotEqual(ros_loader.get_service_class(x), None)
@@ -373,7 +375,7 @@ class TestROSLoader(unittest.TestCase):
         nonexistent = [
             "std_srvs/KillAllHumans",
             "std_srvs/Full",
-            "rospy_tutorials/SubtractTwoInts",
+            "rclpy_tutorials/SubtractTwoInts",
             "nav_msgs/LoseMap",
             "topic_tools/TellMeWhatThisTopicIsActuallyAbout",
         ]
@@ -381,18 +383,8 @@ class TestROSLoader(unittest.TestCase):
             self.assertRaises(ros_loader.InvalidClassException, ros_loader.get_service_class, x)
             self.assertRaises(ros_loader.InvalidClassException, ros_loader.get_service_instance, x)
             self.assertRaises(
-                ros_loader.InvalidClassException,
-                ros_loader.get_service_request_instance,
-                x,
+                ros_loader.InvalidClassException, ros_loader.get_service_request_instance, x
             )
             self.assertRaises(
-                ros_loader.InvalidClassException,
-                ros_loader.get_service_response_instance,
-                x,
+                ros_loader.InvalidClassException, ros_loader.get_service_response_instance, x
             )
-
-
-PKG = "rosbridge_library"
-NAME = "test_ros_loader"
-if __name__ == "__main__":
-    rostest.unitrun(PKG, NAME, TestROSLoader)

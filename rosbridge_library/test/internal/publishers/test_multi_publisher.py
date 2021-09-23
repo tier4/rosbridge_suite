@@ -2,8 +2,9 @@
 import unittest
 from time import sleep
 
-import rospy
-import rostest
+import rclpy
+from rclpy.node import Node
+from ros2topic.api import get_topic_names_and_types
 from rosbridge_library.internal import ros_loader
 from rosbridge_library.internal.message_conversion import FieldTypeMismatchException
 from rosbridge_library.internal.publishers import MultiPublisher
@@ -12,10 +13,14 @@ from rosbridge_library.internal.topics import TypeConflictException
 
 class TestMultiPublisher(unittest.TestCase):
     def setUp(self):
-        rospy.init_node("test_multi_publisher")
+        rclpy.init()
+        self.node = Node("test_node")
+
+    def tearDown(self):
+        rclpy.shutdown()
 
     def is_topic_published(self, topicname):
-        return topicname in dict(rospy.get_published_topics()).keys()
+        return topicname in dict(get_topic_names_and_types()).keys()
 
     def test_register_multipublisher(self):
         """Register a publisher on a clean topic with a good msg type"""
@@ -103,7 +108,7 @@ class TestMultiPublisher(unittest.TestCase):
         def cb(msg):
             received["msg"] = msg
 
-        rospy.Subscriber(topic, ros_loader.get_message_class(msg_type), cb)
+        self.node.create_subscription(ros_loader.get_message_class(msg_type), topic, cb)
         p = MultiPublisher(topic, msg_type)
         p.publish(msg)
 
@@ -119,9 +124,3 @@ class TestMultiPublisher(unittest.TestCase):
 
         p = MultiPublisher(topic, msg_type)
         self.assertRaises(FieldTypeMismatchException, p.publish, msg)
-
-
-PKG = "rosbridge_library"
-NAME = "test_multi_publisher"
-if __name__ == "__main__":
-    rostest.unitrun(PKG, NAME, TestMultiPublisher)
