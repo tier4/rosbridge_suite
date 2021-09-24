@@ -44,4 +44,5 @@ if (BUILD_TESTING)
   # TODO: Enable tests
   # ament_add_pytest_test(test_capabilities "test/capabilities")
   # ament_add_pytest_test(test_internal "test/internal")
+  ament_add_pytest_test(test_ros_loader "test/internal/test_ros_loader.py")
 endif()
