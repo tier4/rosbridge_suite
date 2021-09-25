@@ -306,6 +306,11 @@ class RosbridgeWebsocketNode(Node):
                 time.sleep(retry_startup_delay)
 
 
+def spin(rosbridge_websocket_node):
+    print("spin")
+    rclpy.spin_once(rosbridge_websocket_node, timeout_sec=0.01)
+
+
 def main(args=None):
     if args is None:
         args = sys.argv
@@ -313,7 +318,7 @@ def main(args=None):
     rclpy.init(args=args)
     node = RosbridgeWebsocketNode()
 
-    spin_callback = PeriodicCallback(lambda: rclpy.spin_once(node, timeout_sec=0.01), 1)
+    spin_callback = PeriodicCallback(lambda: spin(node), 1000)
     spin_callback.start()
     start_hook()
 
