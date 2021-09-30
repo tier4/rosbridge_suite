@@ -188,9 +188,11 @@ class MultiSubscriber():
         if not callbacks:
             with self.lock:
                 callbacks = self.subscriptions.values()
-
         # Pass the JSON to each of the callbacks
-        for callback in callbacks:
+
+        fixed_callbacks = list(callbacks);
+
+        for callback in fixed_callbacks:
             try:
                 callback(outgoing)
             except Exception as exc:
