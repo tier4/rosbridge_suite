@@ -118,6 +118,8 @@ class Protocol:
         message_string -- the wire-level message sent by the client
 
         """
+        self.log("info", "[EVT4-1624] Protocol.incoming enter")
+
         if(len(self.buffer) > 0):
             self.buffer = self.buffer + message_string
         else:
@@ -215,6 +217,7 @@ class Protocol:
                 self.old_buffer = self.buffer
                 self.incoming()
 
+        self.log("info", "[EVT4-1624] Protocol.incoming exit")
 
 
     def outgoing(self, message):
@@ -238,6 +241,8 @@ class Protocol:
         cid     -- (optional) an associated id
 
         """
+        self.log("info", "[EVT4-1624] Protocol.send enter")
+
         serialized = self.serialize(message, cid)
         if serialized is not None:
             if self.png == "png":
@@ -268,6 +273,8 @@ class Protocol:
                 self.outgoing(serialized)
                 time.sleep(self.delay_between_messages)
 
+        self.log("info", "[EVT4-1624] Protocol.send exit")
+
     def finish(self):
         """ Indicate that the client is finished and clean up resources.
 
@@ -294,7 +301,7 @@ class Protocol:
                 return msg
             if has_binary(msg) or self.bson_only_mode:
                 return bson.BSON.encode(msg)
-            else:    
+            else:
                 return json.dumps(msg)
         except:
             if cid is not None:

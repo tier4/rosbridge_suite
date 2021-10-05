@@ -53,6 +53,8 @@ class CallService(Capability):
         protocol.register_operation("call_service", self.call_service)
 
     def call_service(self, message):
+        self.protocol.log("info", "[EVT4-1624] CallService.call_service enter")
+
         # Pull out the ID
         cid = message.get("id", None)
 
@@ -89,7 +91,10 @@ class CallService(Capability):
         # Run service caller in the same thread.
         ServiceCaller(trim_servicename(service), args, s_cb, e_cb, self.protocol.node_handle).run()
 
+        self.protocol.log("info", "[EVT4-1624] CallService.call_service exit")
+
     def _success(self, cid, service, fragment_size, compression, message):
+        self.protocol.log("info", "[EVT4-1624] CallService._success enter")
         outgoing_message = {
             "op": "service_response",
             "service": service,
@@ -100,8 +105,10 @@ class CallService(Capability):
             outgoing_message["id"] = cid
         # TODO: fragmentation, compression
         self.protocol.send(outgoing_message)
+        self.protocol.log("info", "[EVT4-1624] CallService._success exit")
 
     def _failure(self, cid, service, exc):
+        self.protocol.log("info", "[EVT4-1624] CallService._failure enter")
         self.protocol.log("error", "call_service %s: %s" %
                           (type(exc).__name__, str(exc)), cid)
         # send response with result: false
@@ -114,6 +121,8 @@ class CallService(Capability):
         if cid is not None:
             outgoing_message["id"] = cid
         self.protocol.send(outgoing_message)
+        self.protocol.log("info", "[EVT4-1624] CallService._failure exit")
+
 
 
 def trim_servicename(service):

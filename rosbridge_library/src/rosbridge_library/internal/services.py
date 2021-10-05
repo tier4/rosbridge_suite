@@ -98,6 +98,7 @@ def args_to_service_request_instance(service, inst, args):
 def call_service(node_handle, service, args=None):
     # Given the service name, fetch the type and class of the service,
     # and a request instance
+    node_handle.get_logger().info('[EVT4-1624] ServiceCaller.call_service enter')
 
     # This should be equivalent to rospy.resolve_name.
     service = expand_topic_name(service, node_handle.get_name(), node_handle.get_namespace())
@@ -119,7 +120,10 @@ def call_service(node_handle, service, args=None):
 
     client = node_handle.create_client(service_class, service)
 
+    node_handle.get_logger().info('[EVT4-1624] ServiceCaller.call_service call')
     response = client.call(inst)
+    node_handle.get_logger().info('[EVT4-1624] ServiceCaller.call_service called')
     json_response = extract_values(response)
+    node_handle.get_logger().info('[EVT4-1624] ServiceCaller.call_service exit')
 
     return json_response

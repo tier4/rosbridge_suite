@@ -118,9 +118,12 @@ class RosbridgeWebSocket(WebSocketHandler):
 
     @log_exceptions
     def on_message(self, message):
+        self.__class__.node_handle.get_logger().info("[EVT4-1624] RosbridgeWebSocket.on_message enter")
+        self.__class__.node_handle.get_logger().info("[EVT4-1624] message={}".format(message))
         cls = self.__class__
         # check if we need to authenticate
         if cls.authenticate and not self.authenticated:
+            self.__class__.node_handle.get_logger().info("[EVT4-1624] RosbridgeWebSocket.on_message authentication")
             try:
                 if cls.bson_only_mode:
                     msg = bson.BSON(message).decode()
@@ -161,14 +164,17 @@ class RosbridgeWebSocket(WebSocketHandler):
                 self.close()
             except:
                 # proper error will be handled in the protocol class
+                self.__class__.node_handle.get_logger().info("[EVT4-1624] RosbridgeWebSocket.on_message exception")
                 if type(message) is bytes:
                     message = message.decode('utf-8')
                 self.protocol.incoming(message)
         else:
             # no authentication required
+            self.__class__.node_handle.get_logger().info("[EVT4-1624] RosbridgeWebSocket.on_message incoming")
             if type(message) is bytes:
                 message = message.decode('utf-8')
             self.protocol.incoming(message)
+        self.__class__.node_handle.get_logger().info("[EVT4-1624] RosbridgeWebSocket.on_message exit")
 
     @log_exceptions
     def on_close(self):
@@ -180,6 +186,9 @@ class RosbridgeWebSocket(WebSocketHandler):
         cls.node_handle.get_logger().info("Client disconnected. {} clients total.".format(cls.clients_connected))
 
     def send_message(self, message):
+        self.__class__.node_handle.get_logger().info("[EVT4-1624] RosbridgeWebSocket.send_message enter")
+        self.__class__.node_handle.get_logger().info("[EVT4-1624] message={}".format(message))
+
         if type(message) == bson.BSON:
             binary = True
         elif type(message) == bytearray:
@@ -188,15 +197,24 @@ class RosbridgeWebSocket(WebSocketHandler):
         else:
             binary = False
 
+        self.__class__.node_handle.get_logger().info("[EVT4-1624] RosbridgeWebSocket.send_message lock")
         with self._write_lock:
+            self.__class__.node_handle.get_logger().info("[EVT4-1624] RosbridgeWebSocket.send_message locked")
             self.io_loop_instance.add_callback(partial(self.prewrite_message, message, binary))
+
+        self.__class__.node_handle.get_logger().info("[EVT4-1624] RosbridgeWebSocket.send_message exit")
 
     @coroutine
     def prewrite_message(self, message, binary):
+        self.__class__.node_handle.get_logger().info("[EVT4-1624] RosbridgeWebSocket.prewrite_message enter")
+
         cls = self.__class__
         # Use a try block because the log decorator doesn't cooperate with @coroutine.
         try:
+
+            self.__class__.node_handle.get_logger().info("[EVT4-1624] RosbridgeWebSocket.prewrite_message lock")
             with self._write_lock:
+                self.__class__.node_handle.get_logger().info("[EVT4-1624] RosbridgeWebSocket.prewrite_message locked")
                 future = self.write_message(message, binary)
 
                 # When closing, self.write_message() return None even if it's an undocument output.
@@ -225,6 +243,8 @@ class RosbridgeWebSocket(WebSocketHandler):
         except:
             _log_exception()
             raise
+
+        self.__class__.node_handle.get_logger().info("[EVT4-1624] RosbridgeWebSocket.prewrite_message exit")
 
     @log_exceptions
     def check_origin(self, origin):
