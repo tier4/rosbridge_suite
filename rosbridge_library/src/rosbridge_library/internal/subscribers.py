@@ -38,6 +38,7 @@ from rosbridge_library.internal.message_conversion import msg_class_type_repr
 from rosbridge_library.internal.topics import TopicNotEstablishedException
 from rosbridge_library.internal.topics import TypeConflictException
 from rosbridge_library.internal.outgoing_message import OutgoingMessage
+from rclpy.qos import QoSPresetProfiles
 
 """ Manages and interfaces with ROS Subscriber objects.  A single subscriber
 is shared between multiple clients
@@ -100,10 +101,6 @@ class MultiSubscriber():
         # Get publishers info
         publishers_info = node_handle.get_publishers_info_by_topic(topic)
 
-        # Select QoS
-        default_qos_profile = 10
-        qos_profile = publishers_info[0].qos_profile if publishers_info else default_qos_profile
-
         # Create the subscriber and associated member variables
         # Subscriptions is initialized with the current client to start with.
         self.subscriptions = {client_id: callback}
@@ -111,7 +108,7 @@ class MultiSubscriber():
         self.topic = topic
         self.msg_class = msg_class
         self.node_handle = node_handle
-        self.subscriber = node_handle.create_subscription(msg_class, topic, self.callback, qos_profile)
+        self.subscriber = node_handle.create_subscription(msg_class, topic, self.callback, QoSPresetProfiles.get_from_short_key("sensor_data"))
         self.new_subscriber = None
         self.new_subscriptions = {}
 
