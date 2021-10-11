@@ -71,6 +71,10 @@ class MultiSubscriber():
         different to the user-specified msg_type
 
         """
+
+        # Workaround of [EVT4-1624]
+        topic = '/throttle' + topic
+
         # First check to see if the topic is already established
         topics_names_and_types = dict(node_handle.get_topic_names_and_types())
         topic_type = topics_names_and_types.get(topic)
@@ -264,4 +268,3 @@ class SubscriberManager():
 
 
 manager = SubscriberManager()
-
