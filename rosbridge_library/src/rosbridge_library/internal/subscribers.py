@@ -73,7 +73,18 @@ class MultiSubscriber():
         """
 
         # Workaround of [EVT4-1624]
-        topic = '/throttle' + topic
+        rename_topics = {
+            "/planning/scenario_planning/current_max_velocity",
+            "/tf",
+            "/autoware/state",
+            "/vehicle/status/control_mode",
+            "/foa/operation/log",
+            "/awapi/vehicle/get/status",
+            "/awapi/autoware/get/status",
+            "/api/external/get/diagnostics"
+        }
+        if topic in rename_topics:
+            topic = '/throttle' + topic
 
         # First check to see if the topic is already established
         topics_names_and_types = dict(node_handle.get_topic_names_and_types())
