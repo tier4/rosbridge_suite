@@ -177,16 +177,13 @@ class TestROSLoader(unittest.TestCase):
         nonexistent = [
             "wangle_msgs/Jam",
             "whistleblower_msgs/Document",
-            "sexual_harrassment_msgs/UnwantedAdvance",
             "coercion_msgs/Bribe",
             "airconditioning_msgs/Cold",
             "pr2thoughts_msgs/Escape",
         ]
         for x in nonexistent:
-            # TODO: Remove InvalidModuleException
-            exceptions = (ros_loader.InvalidPackageException, ros_loader.InvalidModuleException)
-            self.assertRaises(exceptions, ros_loader.get_message_class, x)
-            self.assertRaises(exceptions, ros_loader.get_message_instance, x)
+            self.assertRaises(ros_loader.InvalidModuleException, ros_loader.get_message_class, x)
+            self.assertRaises(ros_loader.InvalidModuleException, ros_loader.get_message_instance, x)
 
     def test_packages_without_msgs(self):
         no_msgs = [
@@ -204,18 +201,13 @@ class TestROSLoader(unittest.TestCase):
             "rcl_interfaces/Time",
             "rcl_interfaces/Duration",
             "rcl_interfaces/Header",
-            "rclpy/Time",
-            "rclpy/Duration",
-            "rclpy/Header",
             "std_msgs/Spool",
             "geometry_msgs/Tetrahedron",
             "sensor_msgs/TelepathyUnit",
         ]
         for x in nonexistent:
-            # TODO: Remove InvalidModuleException
-            exceptions = (ros_loader.InvalidClassException, ros_loader.InvalidModuleException)
-            self.assertRaises(exceptions, ros_loader.get_message_class, x)
-            self.assertRaises(exceptions, ros_loader.get_message_instance, x)
+            self.assertRaises(ros_loader.InvalidClassException, ros_loader.get_message_class, x)
+            self.assertRaises(ros_loader.InvalidClassException, ros_loader.get_message_instance, x)
 
     def test_bad_servicenames(self):
         bad = [
@@ -227,9 +219,9 @@ class TestROSLoader(unittest.TestCase):
             "/////",
             "bad",
             "stillbad",
-            "not/better/still",
-            "not//better//still",
-            "not///better///still",
+            "not/better/even/still",
+            "not//better//even//still",
+            "not///better///even///still",
             "better/",
             "better//",
             "better///",
@@ -315,15 +307,13 @@ class TestROSLoader(unittest.TestCase):
             "revenge_srvs/BackStab",
         ]
         for x in nonexistent:
-            # TODO: Remove InvalidModuleException
-            exceptions = (ros_loader.InvalidPackageException, ros_loader.InvalidModuleException)
-            self.assertRaises(exceptions, ros_loader.get_service_class, x)
-            self.assertRaises(exceptions, ros_loader.get_service_request_instance, x)
-            self.assertRaises(exceptions, ros_loader.get_service_response_instance, x)
+            self.assertRaises(ros_loader.InvalidModuleException, ros_loader.get_service_class, x)
+            self.assertRaises(ros_loader.InvalidModuleException, ros_loader.get_service_request_instance, x)
+            self.assertRaises(ros_loader.InvalidModuleException, ros_loader.get_service_response_instance, x)
 
     def test_nonexistent_service_classnames(self):
         nonexistent = [
-            "std_srvs/KillAllHumans",
+            "std_srvs/Reboot",
             "std_srvs/Full",
             "nav_msgs/LoseMap",
         ]
