@@ -71,6 +71,16 @@ def log_exceptions(f):
     return wrapper
 
 
+def log_enter_exit(f):
+    @wraps(f)
+    def wrapper(self, *args, **kwargs):
+        self.node_handle.get_logger().info("[EVT4] {} enter".format(f.__name__))
+        result = f(self, *args, **kwargs)
+        self.node_handle.get_logger().info("[EVT4] {} exit".format(f.__name__))
+        return result
+    return wrapper
+
+
 class RosbridgeWebSocket(WebSocketHandler):
     client_id_seed = 0
     clients_connected = 0
@@ -88,6 +98,7 @@ class RosbridgeWebSocket(WebSocketHandler):
     node_handle = None
     io_loop_instance = None
 
+    @log_enter_exit
     @log_exceptions
     def open(self):
         cls = self.__class__
@@ -116,8 +127,10 @@ class RosbridgeWebSocket(WebSocketHandler):
         if cls.authenticate:
             cls.node_handle.get_logger().info("Awaiting proper authentication...")
 
+    @log_enter_exit
     @log_exceptions
     def on_message(self, message):
+        self.node_handle.get_logger().info("[EVT4] on_message msg={}".format(message[:100]))
         cls = self.__class__
         # check if we need to authenticate
         if cls.authenticate and not self.authenticated:
@@ -170,6 +183,7 @@ class RosbridgeWebSocket(WebSocketHandler):
                 message = message.decode('utf-8')
             self.protocol.incoming(message)
 
+    @log_enter_exit
     @log_exceptions
     def on_close(self):
         cls = self.__class__
@@ -179,7 +193,9 @@ class RosbridgeWebSocket(WebSocketHandler):
             cls.client_manager.remove_client(self.client_id, self.request.remote_ip)
         cls.node_handle.get_logger().info("Client disconnected. {} clients total.".format(cls.clients_connected))
 
+    @log_enter_exit
     def send_message(self, message):
+        self.node_handle.get_logger().info("[EVT4] send_message msg={}".format(message[:100]))
         if type(message) == bson.BSON:
             binary = True
         elif type(message) == bytearray:
@@ -191,8 +207,10 @@ class RosbridgeWebSocket(WebSocketHandler):
         with self._write_lock:
             self.io_loop_instance.add_callback(partial(self.prewrite_message, message, binary))
 
+    @log_enter_exit
     @coroutine
     def prewrite_message(self, message, binary):
+        self.node_handle.get_logger().info("[EVT4] prewrite_message msg={}".format(message[:100]))
         cls = self.__class__
         # Use a try block because the log decorator doesn't cooperate with @coroutine.
         try:
