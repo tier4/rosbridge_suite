@@ -119,7 +119,10 @@ def call_service(node_handle, service, args=None):
 
     client = node_handle.create_client(service_class, service)
 
+    node_handle.get_logger().info('service call before')
     response = client.call(inst)
+    node_handle.get_logger().info('service call after')
+
     json_response = extract_values(response)
 
     return json_response
