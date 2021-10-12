@@ -30,7 +30,7 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-from threading import Thread
+from threading import Thread, Event
 from rclpy import spin_until_future_complete
 from rclpy.expand_topic_name import expand_topic_name
 from rosbridge_library.internal.ros_loader import get_service_class
@@ -99,6 +99,28 @@ def call_service(node_handle, service, args=None):
     # Given the service name, fetch the type and class of the service,
     # and a request instance
 
+    def client_call(self, request, timeout):
+        if not isinstance(request, self.srv_type.Request):
+            raise TypeError()
+
+        event = Event()
+
+        def unblock(future):
+            nonlocal event
+            event.set()
+
+        future = self.call_async(request)
+        future.add_done_callback(unblock)
+
+        if not event.wait(timeout):
+            node_handle.get_logger().info('service call timeout')
+            raise InvalidServiceException(service)
+
+        if future.exception() is not None:
+            raise future.exception()
+        return future.result()
+
+
     # This should be equivalent to rospy.resolve_name.
     service = expand_topic_name(service, node_handle.get_name(), node_handle.get_namespace())
 
@@ -120,7 +142,7 @@ def call_service(node_handle, service, args=None):
     client = node_handle.create_client(service_class, service)
 
     node_handle.get_logger().info('service call before')
-    response = client.call(inst)
+    response = client_call(client, inst, timeout=10.0)
     node_handle.get_logger().info('service call after')
 
     json_response = extract_values(response)
