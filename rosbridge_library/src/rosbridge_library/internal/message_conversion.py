@@ -37,7 +37,6 @@ import re
 from base64 import standard_b64decode, standard_b64encode
 
 import numpy as np
-import rclpy
 from rcl_interfaces.msg import Parameter
 from rclpy.clock import ROSClock
 from rosbridge_library.internal import ros_loader
@@ -52,7 +51,7 @@ type_map = {
     "bool": ["bool", "boolean"],
     "int": [
         "int8",
-        "byte",
+        "octet",
         "uint8",
         "char",
         "int16",
@@ -70,11 +69,10 @@ type_map = {
 primitive_types = [bool, int, float]
 
 list_types = [list, tuple, np.ndarray, array.array]
-ros_time_types = ["builtin_interfaces/Time", "builtin_interfaces/Duration"]
 ros_primitive_types = [
     "bool",
     "boolean",
-    "byte",
+    "octet",
     "char",
     "int8",
     "uint8",
@@ -91,7 +89,7 @@ ros_primitive_types = [
     "string",
 ]
 ros_header_types = ["Header", "std_msgs/Header", "roslib/Header"]
-ros_binary_types = ["uint8[]", "char[]"]
+ros_binary_types = ["uint8[]", "char[]", "sequence<uint8>", "sequence<char>"]
 list_tokens = re.compile("<(.+?)>")
 bounded_array_tokens = re.compile(r"(.+)\[.*\]")
 ros_binary_types_list_braces = [
@@ -208,13 +206,6 @@ def _from_inst(inst, rostype):
             encoded = get_encoder()(inst)
             return encoded.decode("ascii")
 
-    # Check for time or duration
-    if rostype in ros_time_types:
-        try:
-            return {"sec": inst.sec, "nanosec": inst.nanosec}
-        except AttributeError:
-            return {"secs": inst.secs, "nsecs": inst.nsecs}
-
     if bson_only_mode is None:
         bson_only_mode = rospy.get_param("~bson_only_mode", False)
     # Check for primitive types
@@ -223,6 +214,11 @@ def _from_inst(inst, rostype):
         if (not bson_only_mode) and (rostype in type_map.get("float")):
             if math.isnan(inst) or math.isinf(inst):
                 return None
+
+        # JSON does not support byte array. They are converted to int
+        if (not bson_only_mode) and (rostype == "octet"):
+            return int.from_bytes(inst, "little")
+
         return inst
 
     # Check if it's a list or tuple
@@ -268,10 +264,6 @@ def _to_inst(msg, rostype, roottype, inst=None, stack=[]):
         if expression.sub(binary_type, rostype) in ros_binary_types:
             return _to_binary_inst(msg)
 
-    # Check the type for time or rostime
-    if rostype in ros_time_types:
-        return _to_time_inst(msg, rostype, inst)
-
     # Check to see whether this is a primitive type
     if rostype in ros_primitive_types:
         return _to_primitive_inst(msg, rostype, roottype, stack)
@@ -288,35 +280,11 @@ def _to_inst(msg, rostype, roottype, inst=None, stack=[]):
 
 
 def _to_binary_inst(msg):
-    try:
-        return standard_b64decode(msg) if isinstance(msg, str) else bytes(bytearray(msg))
-    except Exception:
+    if isinstance(msg, str):
+        return list(standard_b64decode(msg))
+    if isinstance(msg, list):
         return msg
-
-
-def _to_time_inst(msg, rostype, inst=None):
-    # Create an instance if we haven't been provided with one
-
-    if rostype == "time" and msg == "now":
-        return ROSClock().now().to_msg()
-
-    if inst is None:
-        if rostype == "time":
-            inst = rclpy.time.Time().to_msg()
-        elif rostype == "duration":
-            inst = rclpy.duration.Duration().to_msg()
-        else:
-            return None
-
-    # Copy across the fields, try ROS1 and ROS2 fieldnames
-    for field in ["secs", "nsecs", "sec", "nanosec"]:
-        try:
-            if field in msg:
-                setattr(inst, field, msg[field])
-        except TypeError:
-            continue
-
-    return inst
+    return bytes(bytearray(msg))
 
 
 def _to_primitive_inst(msg, rostype, roottype, stack):
@@ -325,6 +293,10 @@ def _to_primitive_inst(msg, rostype, roottype, stack):
         # probably wrong parsing,
         # fix that by casting the int to the expected float
         msg = float(msg)
+
+    # Convert to byte
+    if rostype == "octet" and isinstance(msg, int):
+        return bytes([msg])
 
     msgtype = type(msg)
     if msgtype in primitive_types and rostype in type_map[msgtype.__name__]:

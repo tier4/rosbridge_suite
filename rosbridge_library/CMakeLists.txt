@@ -44,5 +44,6 @@ if (BUILD_TESTING)
   # TODO: Enable tests
   # ament_add_pytest_test(test_capabilities "test/capabilities")
   # ament_add_pytest_test(test_internal "test/internal")
+  ament_add_pytest_test(test_message_conversion "test/internal/test_message_conversion.py")
   ament_add_pytest_test(test_services "test/internal/test_services.py")
 endif()
