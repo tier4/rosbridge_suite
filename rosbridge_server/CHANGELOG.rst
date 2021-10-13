@@ -2,6 +2,50 @@
 Changelog for package rosbridge_server
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.0.8 (2021-08-26)
+------------------
+* Add missing test_depends and buildtool_depends
+* Fix various Python code style and lint issues
+* Contributors: Christian Clauss, Jacob Bandes-Storch
+
+1.0.7 (2021-08-18)
+------------------
+* Fix typos discovered by codespell (`#600 <https://github.com/RobotWebTools/rosbridge_suite/issues/600>`_)
+* Contributors: Christian Clauss
+
+1.0.6 (2021-08-17)
+------------------
+* Fix broken links in changelogs
+* Contributors: Jacob Bandes-Storch
+
+1.0.5 (2021-08-12)
+------------------
+* Fix globs in launch xml for ROS 2 pre-Galactic (`#589 <https://github.com/RobotWebTools/rosbridge_suite/issues/589>`_)
+* Remove authentication features and rosauth dependency (`#586 <https://github.com/RobotWebTools/rosbridge_suite/issues/586>`_)
+  [rosauth](http://wiki.ros.org/rosauth) is not maintained for ROS 2, and has not been released for Galactic (https://github.com/GT-RAIL/rosauth/issues/35). Since the authentication feature is old and not commonly used, and since rosbridge_suite has not yet been released in Eloquent, Foxy, or Galactic, we decided to just remove the authentication features to unblock us from pushing releases.
+  To avoid breaking backwards compatibility, we will not publish the new version of rosbridge_suite for Dashing.
+* The server now allows choosing `port:=0` to select an ephemeral port, and sets the port number in the `actual_port` ROS param. (`#585 <https://github.com/RobotWebTools/rosbridge_suite/issues/585>`_)
+* Contributors: Jacob Bandes-Storch
+
+1.0.4 (2021-08-11)
+------------------
+
+1.0.3 (2021-08-03)
+------------------
+* Add cbor-raw compression support (`#574 <https://github.com/RobotWebTools/rosbridge_suite/issues/574>`_, adapted from ROS 1 implementation `#452 <https://github.com/RobotWebTools/rosbridge_suite/issues/452>`_)
+* Adaptations to Eloquent [Again] (`#533 <https://github.com/RobotWebTools/rosbridge_suite/issues/533>`_)
+  * increase spin period to 1000Hz to allow 1000 messages per second into the websocket
+  * allow interpreting int as float when needed
+  * better handling array.array and numpy arrays
+  * allow bytes and str websocket messages
+  * add boolean type
+  * handle type extraction of static array rostypes
+  * missing cls variable
+  Co-authored-by: Maximilian Matthe <maxi.matthe@googlemail.com>
+  Co-authored-by: CoRoLa generic <corola@bi>
+  Co-authored-by: joshwapohlmann <joshwa.pohlmann@barkhauseninstitut.org>
+* Contributors: Jacob Bandes-Storch, travipross
+
 1.0.2 (2019-09-24)
 ------------------
 * use Python 3 dependency keys (`#436 <https://github.com/RobotWebTools/rosbridge_suite/issues/436>`_)
@@ -166,7 +210,7 @@ Changelog for package rosbridge_server
   also accept empty list as the default "do not check globs" value in addition to None.
   Finally, append rosapi service glob after processing command line input so it's not overwritten
 * add missing imports and correct default values for glob parameters
-* Added services_glob to CallServices, added globs to rosbridge_tcp and rosbridge_udp, and other miscellanous fixes.
+* Added services_glob to CallServices, added globs to rosbridge_tcp and rosbridge_udp, and other miscellaneous fixes.
 * Two minor fixes.
 * Added new parameters for topic and service security.
   Added 3 new parameters to rosapi and rosbridge_server which filter the
@@ -272,7 +316,7 @@ Changelog for package rosbridge_server
 * update changelog
 * Merge pull request #147 from RobotWebTools/migrate_third_parties
   separate tornado and backports from rosbridge_server
-* seprate out third party library and ros related script
+* separate out third party library and ros related script
 * remove setup.py
 * add rosbridge_tools as rosbridge_server dependency
 * remove python-imaging dependency. it is used in rosbridge_library
@@ -303,7 +347,7 @@ Changelog for package rosbridge_server
 * update changelog
 * Merge pull request #147 from RobotWebTools/migrate_third_parties
   separate tornado and backports from rosbridge_server
-* seprate out third party library and ros related script
+* separate out third party library and ros related script
 * remove setup.py
 * add rosbridge_tools as rosbridge_server dependency
 * remove python-imaging dependency. it is used in rosbridge_library
@@ -313,7 +357,7 @@ Changelog for package rosbridge_server
 ------------------
 * Merge pull request `#147 <https://github.com/RobotWebTools/rosbridge_suite/issues/147>`_ from RobotWebTools/migrate_third_parties
   separate tornado and backports from rosbridge_server
-* seprate out third party library and ros related script
+* separate out third party library and ros related script
 * remove setup.py
 * add rosbridge_tools as rosbridge_server dependency
 * remove python-imaging dependency. it is used in rosbridge_library
@@ -388,7 +432,7 @@ Changelog for package rosbridge_server
 * move global param into local param to address issue `#25 <https://github.com/RobotWebTools/rosbridge_suite/issues/25>`_
 * moving global parameter into local parameter to address issue `#25 <https://github.com/RobotWebTools/rosbridge_suite/issues/25>`_
 * merging changes of groovy-devel into hydro-devel
-* Specific IP adress binding using roslauch
+* Specific IP address binding using roslauch
 * added parameter lookup to rosbridge_tcp.py, modules where those are used, and default parameters to launch file; internal default-values still get used when launch-file does not provide them; internal defaults can be changed within rosbridge_tcp.py
 * increaing max_msg_length - still hardcoded
 * preparing pull request for upstream..
@@ -468,7 +512,7 @@ Changelog for package rosbridge_server
   [ERROR] [WallTime: 1356115083.100585] Uncaught exception, closing connection.
   [ERROR] [WallTime: 1356115083.100900] Exception in callback <tornado.stack_context._StackContextWrapper object at 0x1dd6e10>
 * Removing ultrajson from rosbridge.
-  If JSON parsing becomes a performance bottle neck, we can readd it.
+  If JSON parsing becomes a performance bottle neck, we can re-add it.
 * Refactors rosbridge_server. Adds scripts dir.
 * Catkinizing rosbridge_library and server.
 * Added command line --port argument.

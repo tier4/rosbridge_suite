@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package format="3">
   <name>rosapi</name>
-  <version>1.0.2</version>
+  <version>1.0.8</version>
   <description>
     Provides service calls for getting ros meta-information, like list of
     topics, services, params, etc.
@@ -14,8 +14,8 @@
   <url type="repository">https://github.com/RobotWebTools/rosbridge_suite</url>
 
   <author email="jonathan.c.mace@gmail.com">Jonathan Mace</author>
-  <maintainer email="rctoris@wpi.edu">Russell Toris</maintainer>
   <maintainer email="jihoonlee.in@gmail.com">Jihoon Lee</maintainer>
+  <maintainer email="jacob@foxglove.dev">Jacob Bandes-Storch</maintainer>
 
   <buildtool_depend>ament_cmake_ros</buildtool_depend>
 
@@ -37,6 +37,12 @@
   <exec_depend>rosgraph</exec_depend>
   -->
   <exec_depend>rosidl_default_runtime</exec_depend>
+
+  <test_depend>ament_cmake_pytest</test_depend>
+  <test_depend>sensor_msgs</test_depend>
+  <test_depend>shape_msgs</test_depend>
+  <test_depend>geometry_msgs</test_depend>
+  <test_depend>rmw_dds_common</test_depend>
 
   <member_of_group>rosidl_interface_packages</member_of_group>
 

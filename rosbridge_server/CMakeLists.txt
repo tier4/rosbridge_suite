@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.5)
-project(rosbridge_server NONE)
+project(rosbridge_server)
 
+find_package(ament_cmake_ros REQUIRED)
 find_package(ament_cmake_core REQUIRED)
 find_package(ament_cmake_python REQUIRED)
 
@@ -26,3 +27,7 @@ install(FILES
   DESTINATION share/${PROJECT_NAME}/launch
 )
 
+if(BUILD_TESTING)
+  find_package(launch_testing_ament_cmake REQUIRED)
+  add_launch_test(test/websocket/smoke.test.py)
+endif()
