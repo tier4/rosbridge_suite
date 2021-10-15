@@ -29,6 +29,7 @@ class AdvertisedServiceHandler():
         return id
 
     def handle_request(self, req, res):
+        self.protocol.node_handle.info("[EVT4] service enter")
         with self.lock:
             self.active_requests += 1
         # generate a unique ID
@@ -58,10 +59,12 @@ class AdvertisedServiceHandler():
                     "warning",
                     "Service %s was unadvertised with a service call in progress, "
                     "aborting service call with request ID %s" % (self.service_name, request_id))
+                self.protocol.node_handle.info("[EVT4] service shutdown")
                 return None
 
         resp = self.responses[request_id]
         del self.responses[request_id]
+        self.protocol.node_handle.info("[EVT4] service exit")
         return resp
 
     def graceful_shutdown(self, timeout):
