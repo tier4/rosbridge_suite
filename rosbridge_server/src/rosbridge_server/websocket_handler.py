@@ -207,9 +207,9 @@ class RosbridgeWebSocket(WebSocketHandler):
         with self._write_lock:
             self.io_loop_instance.add_callback(partial(self.prewrite_message, message, binary))
 
-    @log_enter_exit
     @coroutine
     def prewrite_message(self, message, binary):
+        self.node_handle.get_logger().info("[EVT4] prewrite_message enter")
         self.node_handle.get_logger().info("[EVT4] prewrite_message msg={}".format(message[:100]))
         cls = self.__class__
         # Use a try block because the log decorator doesn't cooperate with @coroutine.
@@ -235,14 +235,17 @@ class RosbridgeWebSocket(WebSocketHandler):
         except BadYieldError:
             # Tornado <4.5.0 doesn't like its own yield and raises BadYieldError.
             # This does not affect functionality, so pass silently only in this case.
+            self.node_handle.get_logger().info("[EVT4] prewrite_message bad-yield {}".format(tornado_version_info))
             if tornado_version_info < (4, 5, 0, 0):
                 pass
             else:
                 _log_exception()
                 raise
         except:
+            self.node_handle.get_logger().info("[EVT4] prewrite_message exception")
             _log_exception()
             raise
+        self.node_handle.get_logger().info("[EVT4] prewrite_message exit")
 
     @log_exceptions
     def check_origin(self, origin):
