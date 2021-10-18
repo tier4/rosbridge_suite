@@ -204,8 +204,11 @@ class RosbridgeWebSocket(WebSocketHandler):
         else:
             binary = False
 
+        self.node_handle.get_logger().info("[EVT4] send_message lock")
         with self._write_lock:
+            self.node_handle.get_logger().info("[EVT4] send_message add_callback before")
             self.io_loop_instance.add_callback(partial(self.prewrite_message, message, binary))
+            self.node_handle.get_logger().info("[EVT4] send_message add_callback after")
 
     @coroutine
     def prewrite_message(self, message, binary):

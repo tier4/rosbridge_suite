@@ -238,6 +238,7 @@ class Protocol:
         cid     -- (optional) an associated id
 
         """
+        self.log("info", "[EVT4] protocol send enter")
         serialized = self.serialize(message, cid)
         if serialized is not None:
             if self.png == "png":
@@ -267,6 +268,7 @@ class Protocol:
             else:
                 self.outgoing(serialized)
                 time.sleep(self.delay_between_messages)
+        self.log("info", "[EVT4] protocol send exit")
 
     def finish(self):
         """ Indicate that the client is finished and clean up resources.
@@ -294,7 +296,7 @@ class Protocol:
                 return msg
             if has_binary(msg) or self.bson_only_mode:
                 return bson.BSON.encode(msg)
-            else:    
+            else:
                 return json.dumps(msg)
         except:
             if cid is not None:
