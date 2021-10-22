@@ -123,8 +123,11 @@ def call_service(node_handle, service, args=None):
 
     client = node_handle.create_client(service_class, service)
 
+    node_handle.get_logger().info('[EVT4] client call before')
     future = client.call_async(inst)
+    node_handle.get_logger().info('[EVT4] client call future')
     spin_until_future_complete(node_handle, future)
+    node_handle.get_logger().info('[EVT4] client call after')
     if future.result() is not None:
         # Turn the response into JSON and pass to the callback
         json_response = extract_values(future.result())

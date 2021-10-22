@@ -30,6 +30,7 @@ class AdvertisedServiceHandler:
         return id
 
     def handle_request(self, req, res):
+        self.protocol.node_handle.get_logger().info("[EVT4] service enter")
         with self.lock:
             self.active_requests += 1
         # generate a unique ID
@@ -42,7 +43,9 @@ class AdvertisedServiceHandler:
             "service": self.service_name,
             "args": message_conversion.extract_values(req),
         }
+        self.protocol.node_handle.get_logger().info("[EVT4] service send")
         self.protocol.send(request_message)
+        self.protocol.node_handle.get_logger().info("[EVT4] service sent")
 
         # wait for a response
         while request_id not in self.responses.keys():
@@ -50,6 +53,7 @@ class AdvertisedServiceHandler:
                 if self.shutdown_requested:
                     break
             time.sleep(0)
+        self.protocol.node_handle.get_logger().info("[EVT4] service wait response")
 
         with self.lock:
             self.active_requests -= 1
@@ -60,10 +64,13 @@ class AdvertisedServiceHandler:
                     "Service %s was unadvertised with a service call in progress, "
                     "aborting service call with request ID %s" % (self.service_name, request_id),
                 )
+                self.protocol.node_handle.get_logger().info("[EVT4] service shutdown")
                 return None
+        self.protocol.node_handle.get_logger().info("[EVT4] service requests decrement")
 
         res = self.responses[request_id]
         del self.responses[request_id]
+        self.protocol.node_handle.get_logger().info("[EVT4] service exit")
         return res
 
     def graceful_shutdown(self, timeout):

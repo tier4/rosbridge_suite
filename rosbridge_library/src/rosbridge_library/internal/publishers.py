@@ -116,6 +116,7 @@ class MultiPublisher:
         else:
             publisher_qos.depth = 1
 
+        node_handle.get_logger().warn("[EVT4] publish {}".format(self.topic))
         self.publisher = node_handle.create_publisher(msg_class, topic, qos_profile=publisher_qos)
 
     def unregister(self):

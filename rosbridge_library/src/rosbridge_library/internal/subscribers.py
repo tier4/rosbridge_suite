@@ -191,6 +191,8 @@ class MultiSubscriber:
         callbacks - subscriber callbacks to invoke
 
         """
+        self.node_handle.get_logger().info("[EVT4] subscribe enter {}".format(self.topic))
+
         outgoing = OutgoingMessage(msg)
 
         # Get the callbacks to call
@@ -205,6 +207,8 @@ class MultiSubscriber:
             except Exception as exc:
                 # Do nothing if one particular callback fails except log it
                 self.node_handle.get_logger().error(f"Exception calling subscribe callback: {exc}")
+
+        self.node_handle.get_logger().info("[EVT4] subscribe exit")
 
     def _new_sub_callback(self, msg):
         """
