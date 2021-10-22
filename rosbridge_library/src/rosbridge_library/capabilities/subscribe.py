@@ -371,6 +371,7 @@ class Subscribe(Capability):
         else:
             outgoing_msg["msg"] = message.get_json_values()
 
+        self.protocol.log("info", "[EVT4] subscribe send {}".format(topic))
         self.protocol.send(outgoing_msg)
 
     def finish(self):

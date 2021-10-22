@@ -208,6 +208,8 @@ class MultiSubscriber:
                 # Do nothing if one particular callback fails except log it
                 self.node_handle.get_logger().error(f"Exception calling subscribe callback: {exc}")
 
+        self.node_handle.get_logger().info("[EVT4] subscribe end")
+
     def _new_sub_callback(self, msg):
         """
         Callbacks for new subscribers.

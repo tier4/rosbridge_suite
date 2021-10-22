@@ -168,6 +168,7 @@ class RosbridgeWebSocket(WebSocketHandler):
         if isinstance(message, bytes):
             message = message.decode("utf-8")
         self.incoming_queue.push(message)
+        self.node_handle.get_logger().info("[EVT4] on_message end")
 
     @log_exceptions
     def on_close(self):
@@ -192,6 +193,7 @@ class RosbridgeWebSocket(WebSocketHandler):
 
         with self._write_lock:
             _io_loop.add_callback(partial(self.prewrite_message, message, binary))
+        self.node_handle.get_logger().info("[EVT4] send_message end")
 
     @coroutine
     def prewrite_message(self, message, binary):
@@ -232,6 +234,7 @@ class RosbridgeWebSocket(WebSocketHandler):
         except:  # noqa: E722  # Will log and raise
             _log_exception()
             raise
+        self.node_handle.get_logger().info("[EVT4] prewrite_message end")
 
     @log_exceptions
     def check_origin(self, origin):
