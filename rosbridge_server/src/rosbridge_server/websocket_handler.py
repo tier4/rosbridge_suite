@@ -68,16 +68,6 @@ def log_exceptions(f):
     return wrapper
 
 
-def log_enter_exit(f):
-    @wraps(f)
-    def wrapper(self, *args, **kwargs):
-        self.node_handle.get_logger().info("[EVT4] {} enter".format(f.__name__))
-        result = f(self, *args, **kwargs)
-        self.node_handle.get_logger().info("[EVT4] {} exit".format(f.__name__))
-        return result
-    return wrapper
-
-
 class IncomingQueue(threading.Thread):
     """Decouples incoming messages from the Tornado thread.
 
@@ -139,7 +129,6 @@ class RosbridgeWebSocket(WebSocketHandler):
     node_handle = None
     io_loop_instance = None
 
-    @log_enter_exit
     @log_exceptions
     def open(self):
         cls = self.__class__
@@ -173,14 +162,13 @@ class RosbridgeWebSocket(WebSocketHandler):
             f"Client connected. {cls.clients_connected} clients total."
         )
 
-    @log_enter_exit
     @log_exceptions
     def on_message(self, message):
+        self.node_handle.get_logger().info("[EVT4] on_message msg={}".format(message[:100]))
         if isinstance(message, bytes):
             message = message.decode("utf-8")
         self.incoming_queue.push(message)
 
-    @log_enter_exit
     @log_exceptions
     def on_close(self):
         cls = self.__class__
@@ -192,7 +180,6 @@ class RosbridgeWebSocket(WebSocketHandler):
         )
         self.incoming_queue.finish()
 
-    @log_enter_exit
     def send_message(self, message):
         self.node_handle.get_logger().info("[EVT4] send_message msg={}".format(message[:100]))
         if isinstance(message, bson.BSON):
@@ -203,24 +190,17 @@ class RosbridgeWebSocket(WebSocketHandler):
         else:
             binary = False
 
-        self.node_handle.get_logger().info("[EVT4] send_message lock")
         with self._write_lock:
-            self.node_handle.get_logger().info("[EVT4] send_message add_callback before")
             _io_loop.add_callback(partial(self.prewrite_message, message, binary))
-            self.node_handle.get_logger().info("[EVT4] send_message add_callback after")
 
     @coroutine
     def prewrite_message(self, message, binary):
-        self.node_handle.get_logger().info("[EVT4] prewrite_message enter")
         self.node_handle.get_logger().info("[EVT4] prewrite_message msg={}".format(message[:100]))
         cls = self.__class__
         # Use a try block because the log decorator doesn't cooperate with @coroutine.
         try:
-            self.node_handle.get_logger().info("[EVT4] prewrite_message lock")
             with self._write_lock:
-                self.node_handle.get_logger().info("[EVT4] prewrite_message write_message before")
                 future = self.write_message(message, binary)
-                self.node_handle.get_logger().info("[EVT4] prewrite_message write_message after")
 
                 # When closing, self.write_message() return None even if it's an undocument output.
                 # Consider it as WebSocketClosedError
@@ -228,10 +208,7 @@ class RosbridgeWebSocket(WebSocketHandler):
                 if future is None and tornado_version_info >= (4, 3, 0, 0):
                     raise WebSocketClosedError
 
-                self.node_handle.get_logger().info("[EVT4] prewrite_message future before")
                 yield future
-                self.node_handle.get_logger().info("[EVT4] prewrite_message future after")
-
         except WebSocketClosedError:
             cls.node_handle.get_logger().warn(
                 "WebSocketClosedError: Tried to write to a closed websocket",
@@ -247,17 +224,14 @@ class RosbridgeWebSocket(WebSocketHandler):
         except BadYieldError:
             # Tornado <4.5.0 doesn't like its own yield and raises BadYieldError.
             # This does not affect functionality, so pass silently only in this case.
-            self.node_handle.get_logger().info("[EVT4] prewrite_message bad-yield {}".format(tornado_version_info))
             if tornado_version_info < (4, 5, 0, 0):
                 pass
             else:
                 _log_exception()
                 raise
         except:  # noqa: E722  # Will log and raise
-            self.node_handle.get_logger().info("[EVT4] prewrite_message exception")
             _log_exception()
             raise
-        self.node_handle.get_logger().info("[EVT4] prewrite_message exit")
 
     @log_exceptions
     def check_origin(self, origin):
