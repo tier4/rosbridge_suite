@@ -217,8 +217,11 @@ class RosbridgeWebSocket(WebSocketHandler):
         cls = self.__class__
         # Use a try block because the log decorator doesn't cooperate with @coroutine.
         try:
+            self.node_handle.get_logger().info("[EVT4] prewrite_message lock")
             with self._write_lock:
+                self.node_handle.get_logger().info("[EVT4] prewrite_message write_message before")
                 future = self.write_message(message, binary)
+                self.node_handle.get_logger().info("[EVT4] prewrite_message write_message after")
 
                 # When closing, self.write_message() return None even if it's an undocument output.
                 # Consider it as WebSocketClosedError
@@ -226,7 +229,10 @@ class RosbridgeWebSocket(WebSocketHandler):
                 if future is None and tornado_version_info >= (4,3,0,0):
                     raise WebSocketClosedError
 
+                self.node_handle.get_logger().info("[EVT4] prewrite_message future before")
                 yield future
+                self.node_handle.get_logger().info("[EVT4] prewrite_message future after")
+
         except WebSocketClosedError:
             cls.node_handle.get_logger().warn('WebSocketClosedError: Tried to write to a closed websocket',
                 throttle_duration_sec=1.0)
