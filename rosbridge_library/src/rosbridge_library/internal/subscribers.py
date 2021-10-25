@@ -174,12 +174,17 @@ class MultiSubscriber:
 
         """
         with self.lock:
-            del self.subscriptions[client_id]
+            if client_id in self.subscriptions:
+                del self.subscriptions[client_id]
+            elif client_id in self.new_subscriptions:
+                del self.new_subscriptions[client_id]
+            else:
+                self.node_handle.get_logger().warn("Illegal client_id: {}".format(client_id))
 
     def has_subscribers(self):
         """Return true if there are subscribers"""
         with self.lock:
-            return len(self.subscriptions) != 0
+            return (len(self.subscriptions) != 0 or len(self.new_subscriptions) != 0)
 
     def callback(self, msg, callbacks=None):
         """Callback for incoming messages on the rclpy subscription.
