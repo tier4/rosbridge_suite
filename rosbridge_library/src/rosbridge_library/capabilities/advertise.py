@@ -32,13 +32,13 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 import fnmatch
+
 from rosbridge_library.capability import Capability
 from rosbridge_library.internal.publishers import manager
-from rosbridge_library.util import string_types
 
 
-class Registration():
-    """ Keeps track of how many times a client has requested to advertise
+class Registration:
+    """Keeps track of how many times a client has requested to advertise
     a publisher.
 
     A client could advertise and unadvertise a topic multiple times, and we
@@ -60,7 +60,13 @@ class Registration():
     def register_advertisement(self, msg_type, adv_id=None, latch=False, queue_size=100):
         # Register with the publisher manager, propagating any exception
         manager.register(
-            self.client_id, self.topic, self.node_handle, msg_type=msg_type, latch=latch, queue_size=queue_size)
+            self.client_id,
+            self.topic,
+            self.node_handle,
+            msg_type=msg_type,
+            latch=latch,
+            queue_size=queue_size,
+        )
 
         self.clients[adv_id] = True
 
@@ -76,8 +82,8 @@ class Registration():
 
 class Advertise(Capability):
 
-    advertise_msg_fields = [(True, "topic", string_types), (True, "type", string_types)]
-    unadvertise_msg_fields = [(True, "topic", string_types)]
+    advertise_msg_fields = [(True, "topic", str), (True, "type", str)]
+    unadvertise_msg_fields = [(True, "topic", str)]
 
     topics_glob = None
 
@@ -109,18 +115,24 @@ class Advertise(Capability):
             self.protocol.log("debug", "Topic security glob enabled, checking topic: " + topic)
             match = False
             for glob in Advertise.topics_glob:
-                if (fnmatch.fnmatch(topic, glob)):
-                    self.protocol.log("debug", "Found match with glob " + glob + ", continuing advertisement...")
+                if fnmatch.fnmatch(topic, glob):
+                    self.protocol.log(
+                        "debug",
+                        "Found match with glob " + glob + ", continuing advertisement...",
+                    )
                     match = True
                     break
             if not match:
-                self.protocol.log("warn", "No match found for topic, cancelling advertisement of: " + topic)
+                self.protocol.log(
+                    "warn",
+                    "No match found for topic, cancelling advertisement of: " + topic,
+                )
                 return
         else:
             self.protocol.log("debug", "No topic security glob, not checking advertisement.")
 
         # Create the Registration if one doesn't yet exist
-        if not topic in self._registrations:
+        if topic not in self._registrations:
             client_id = self.protocol.client_id
             self._registrations[topic] = Registration(client_id, topic, self.protocol.node_handle)
 
@@ -138,12 +150,18 @@ class Advertise(Capability):
             self.protocol.log("debug", "Topic security glob enabled, checking topic: " + topic)
             match = False
             for glob in Advertise.topics_glob:
-                if (fnmatch.fnmatch(topic, glob)):
-                    self.protocol.log("debug", "Found match with glob " + glob + ", continuing unadvertisement...")
+                if fnmatch.fnmatch(topic, glob):
+                    self.protocol.log(
+                        "debug",
+                        "Found match with glob " + glob + ", continuing unadvertisement...",
+                    )
                     match = True
                     break
             if not match:
-                self.protocol.log("warn", "No match found for topic, cancelling unadvertisement of: " + topic)
+                self.protocol.log(
+                    "warn",
+                    "No match found for topic, cancelling unadvertisement of: " + topic,
+                )
                 return
         else:
             self.protocol.log("debug", "No topic security glob, not checking unadvertisement.")

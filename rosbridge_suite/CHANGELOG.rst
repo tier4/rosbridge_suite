@@ -2,6 +2,26 @@
 Changelog for package rosbridge_suite
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.0.8 (2021-08-26)
+------------------
+
+1.0.7 (2021-08-18)
+------------------
+* Fix typos discovered by codespell (`#600 <https://github.com/RobotWebTools/rosbridge_suite/issues/600>`_)
+* Contributors: Christian Clauss
+
+1.0.6 (2021-08-17)
+------------------
+
+1.0.5 (2021-08-12)
+------------------
+
+1.0.4 (2021-08-11)
+------------------
+
+1.0.3 (2021-08-03)
+------------------
+
 1.0.2 (2019-09-24)
 ------------------
 
@@ -211,6 +231,6 @@ Changelog for package rosbridge_suite
 * Fixed an inconsequential elif bug.
 * Refactored to use simplejson if the package is installed.
 * Added simplejson library and moved the location of the libraries.
-* Temporary commit adding profiling messages. something is goign awry.
+* Temporary commit adding profiling messages. something is going awry.
 * Renamed rosbridge stack to rosbridge_suite
 * Contributors: Austin Hendrix, Brandon Alexander, Jihoon Lee, jon

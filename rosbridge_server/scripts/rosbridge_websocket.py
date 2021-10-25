@@ -31,80 +31,87 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-from __future__ import print_function
 
 import sys
 import time
-import signal
-
-from socket import error
-
-from threading import Thread, Lock
-from tornado.ioloop import IOLoop
-from tornado.ioloop import PeriodicCallback
-from tornado.web import Application
+from threading import Thread
 
 import rclpy
 from rclpy.node import Node
-from rclpy.parameter import Parameter
-from rclpy.qos import QoSProfile, QoSDurabilityPolicy
-from std_msgs.msg import Int32
-
-from rosbridge_server import RosbridgeWebSocket, ClientManager
-
+from rclpy.qos import QoSDurabilityPolicy, QoSProfile
 from rosbridge_library.capabilities.advertise import Advertise
+from rosbridge_library.capabilities.advertise_service import AdvertiseService
+from rosbridge_library.capabilities.call_service import CallService
 from rosbridge_library.capabilities.publish import Publish
 from rosbridge_library.capabilities.subscribe import Subscribe
-from rosbridge_library.capabilities.advertise_service import AdvertiseService
 from rosbridge_library.capabilities.unadvertise_service import UnadvertiseService
-from rosbridge_library.capabilities.call_service import CallService
+from std_msgs.msg import Int32
+from tornado.httpserver import HTTPServer
+from tornado.ioloop import IOLoop
+from tornado.netutil import bind_sockets
+from tornado.web import Application
+
+from rosbridge_server import ClientManager, RosbridgeWebSocket
+
+
+def start_hook():
+    IOLoop.instance().start()
+
+
+def shutdown_hook():
+    IOLoop.instance().stop()
+
 
 class RosbridgeWebsocketNode(Node):
-    def __init__(self, io_loop_instance):
-        super().__init__('rosbridge_websocket')
+    def __init__(self):
+        super().__init__("rosbridge_websocket")
 
         RosbridgeWebSocket.node_handle = self
-        RosbridgeWebSocket.io_loop_instance = io_loop_instance
+
         ##################################################
         # Parameter handling                             #
         ##################################################
-        retry_startup_delay = self.declare_parameter('retry_startup_delay', 2.0).value  # seconds.
+        retry_startup_delay = self.declare_parameter("retry_startup_delay", 2.0).value  # seconds.
 
-        RosbridgeWebSocket.use_compression = self.declare_parameter(
-            'use_compression', False).value
+        RosbridgeWebSocket.use_compression = self.declare_parameter("use_compression", False).value
 
         # get RosbridgeProtocol parameters
         RosbridgeWebSocket.fragment_timeout = self.declare_parameter(
-            'fragment_timeout', RosbridgeWebSocket.fragment_timeout).value
+            "fragment_timeout", RosbridgeWebSocket.fragment_timeout
+        ).value
 
         RosbridgeWebSocket.delay_between_messages = self.declare_parameter(
-            'delay_between_messages', RosbridgeWebSocket.delay_between_messages).value
+            "delay_between_messages", RosbridgeWebSocket.delay_between_messages
+        ).value
 
         RosbridgeWebSocket.max_message_size = self.declare_parameter(
-            'max_message_size', RosbridgeWebSocket.max_message_size).value
+            "max_message_size", RosbridgeWebSocket.max_message_size
+        ).value
 
         RosbridgeWebSocket.unregister_timeout = self.declare_parameter(
-            'unregister_timeout', RosbridgeWebSocket.unregister_timeout).value
+            "unregister_timeout", RosbridgeWebSocket.unregister_timeout
+        ).value
 
-        bson_only_mode = self.declare_parameter('bson_only_mode', False).value
-
-        if RosbridgeWebSocket.max_message_size == "None":
-            RosbridgeWebSocket.max_message_size = None
+        bson_only_mode = self.declare_parameter("bson_only_mode", False).value
 
         # get tornado application parameters
         tornado_settings = {}
-        tornado_settings['websocket_ping_interval'] = float(self.declare_parameter('websocket_ping_interval', 0).value)
-        tornado_settings['websocket_ping_timeout'] = float(self.declare_parameter('websocket_ping_timeout', 30).value)
+        tornado_settings["websocket_ping_interval"] = float(
+            self.declare_parameter("websocket_ping_interval", 0).value
+        )
+        tornado_settings["websocket_ping_timeout"] = float(
+            self.declare_parameter("websocket_ping_timeout", 30).value
+        )
 
         # SSL options
-        certfile = self.declare_parameter('certfile').value
-        keyfile = self.declare_parameter('keyfile').value
+        certfile = self.declare_parameter("certfile").value
+        keyfile = self.declare_parameter("keyfile").value
         # if authentication should be used
-        RosbridgeWebSocket.authenticate = self.declare_parameter('authenticate', False).value
+        RosbridgeWebSocket.authenticate = self.declare_parameter("authenticate", False).value
 
-        port = self.declare_parameter('port', 9090).value
+        port = self.declare_parameter("port", 9090).value
 
-        address = self.declare_parameter('address', '').value
+        address = self.declare_parameter("address", "").value
 
         RosbridgeWebSocket.client_manager = ClientManager(self)
 
@@ -112,35 +119,39 @@ class RosbridgeWebsocketNode(Node):
         # QoS profile with transient local durability (latched topic in ROS 1).
         client_count_qos_profile = QoSProfile(
             depth=10,
-            durability=QoSDurabilityPolicy.RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL
+            durability=QoSDurabilityPolicy.RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL,
         )
 
-        RosbridgeWebSocket.client_count_pub = self.create_publisher(Int32, 'client_count',
-                                                                    qos_profile=client_count_qos_profile)
+        RosbridgeWebSocket.client_count_pub = self.create_publisher(
+            Int32, "client_count", qos_profile=client_count_qos_profile
+        )
         RosbridgeWebSocket.client_count_pub.publish(Int32(data=0))
 
         # Get the glob strings and parse them as arrays.
-        topics_glob = self.declare_parameter('topics_glob', '').value
+        topics_glob = self.declare_parameter("topics_glob", "").value
 
-        services_glob = self.declare_parameter('services_glob', '').value
+        services_glob = self.declare_parameter("services_glob", "").value
 
-        params_glob = self.declare_parameter('params_glob', '').value
+        params_glob = self.declare_parameter("params_glob", "").value
 
         RosbridgeWebSocket.topics_glob = [
             element.strip().strip("'")
-            for element in topics_glob[1:-1].split(',')
-            if len(element.strip().strip("'")) > 0]
+            for element in topics_glob[1:-1].split(",")
+            if len(element.strip().strip("'")) > 0
+        ]
         RosbridgeWebSocket.services_glob = [
             element.strip().strip("'")
-            for element in services_glob[1:-1].split(',')
-            if len(element.strip().strip("'")) > 0]
+            for element in services_glob[1:-1].split(",")
+            if len(element.strip().strip("'")) > 0
+        ]
         RosbridgeWebSocket.params_glob = [
             element.strip().strip("'")
-            for element in params_glob[1:-1].split(',')
-            if len(element.strip().strip("'")) > 0]
+            for element in params_glob[1:-1].split(",")
+            if len(element.strip().strip("'")) > 0
+        ]
 
         if "--port" in sys.argv:
-            idx = sys.argv.index("--port")+1
+            idx = sys.argv.index("--port") + 1
             if idx < len(sys.argv):
                 port = int(sys.argv[idx])
             else:
@@ -148,7 +159,7 @@ class RosbridgeWebsocketNode(Node):
                 sys.exit(-1)
 
         if "--address" in sys.argv:
-            idx = sys.argv.index("--address")+1
+            idx = sys.argv.index("--address") + 1
             if idx < len(sys.argv):
                 address = int(sys.argv[idx])
             else:
@@ -183,18 +194,15 @@ class RosbridgeWebsocketNode(Node):
             idx = sys.argv.index("--max_message_size") + 1
             if idx < len(sys.argv):
                 value = sys.argv[idx]
-                if value == "None":
-                    RosbridgeWebSocket.max_message_size = None
-                else:
-                    RosbridgeWebSocket.max_message_size = int(value)
+                RosbridgeWebSocket.max_message_size = int(value)
             else:
-                print("--max_message_size argument provided without a value. (can be None or <Integer>)")
+                print("--max_message_size argument provided without a value. (can be <Integer>)")
                 sys.exit(-1)
 
         if "--unregister_timeout" in sys.argv:
             idx = sys.argv.index("--unregister_timeout") + 1
             if idx < len(sys.argv):
-                unregister_timeout = float(sys.argv[idx])
+                RosbridgeWebSocket.unregister_timeout = float(sys.argv[idx])
             else:
                 print("--unregister_timeout argument provided without a value.")
                 sys.exit(-1)
@@ -206,7 +214,9 @@ class RosbridgeWebsocketNode(Node):
                 if value == "None":
                     RosbridgeWebSocket.topics_glob = []
                 else:
-                    RosbridgeWebSocket.topics_glob = [element.strip().strip("'") for element in value[1:-1].split(',')]
+                    RosbridgeWebSocket.topics_glob = [
+                        element.strip().strip("'") for element in value[1:-1].split(",")
+                    ]
             else:
                 print("--topics_glob argument provided without a value. (can be None or a list)")
                 sys.exit(-1)
@@ -218,7 +228,9 @@ class RosbridgeWebsocketNode(Node):
                 if value == "None":
                     RosbridgeWebSocket.services_glob = []
                 else:
-                    RosbridgeWebSocket.services_glob = [element.strip().strip("'") for element in value[1:-1].split(',')]
+                    RosbridgeWebSocket.services_glob = [
+                        element.strip().strip("'") for element in value[1:-1].split(",")
+                    ]
             else:
                 print("--services_glob argument provided without a value. (can be None or a list)")
                 sys.exit(-1)
@@ -230,7 +242,9 @@ class RosbridgeWebsocketNode(Node):
                 if value == "None":
                     RosbridgeWebSocket.params_glob = []
                 else:
-                    RosbridgeWebSocket.params_glob = [element.strip().strip("'") for element in value[1:-1].split(',')]
+                    RosbridgeWebSocket.params_glob = [
+                        element.strip().strip("'") for element in value[1:-1].split(",")
+                    ]
             else:
                 print("--params_glob argument provided without a value. (can be None or a list)")
                 sys.exit(-1)
@@ -241,7 +255,7 @@ class RosbridgeWebsocketNode(Node):
         if "--websocket_ping_interval" in sys.argv:
             idx = sys.argv.index("--websocket_ping_interval") + 1
             if idx < len(sys.argv):
-                tornado_settings['websocket_ping_interval'] = float(sys.argv[idx])
+                tornado_settings["websocket_ping_interval"] = float(sys.argv[idx])
             else:
                 print("--websocket_ping_interval argument provided without a value.")
                 sys.exit(-1)
@@ -249,7 +263,7 @@ class RosbridgeWebsocketNode(Node):
         if "--websocket_ping_timeout" in sys.argv:
             idx = sys.argv.index("--websocket_ping_timeout") + 1
             if idx < len(sys.argv):
-                tornado_settings['websocket_ping_timeout'] = float(sys.argv[idx])
+                tornado_settings["websocket_ping_timeout"] = float(sys.argv[idx])
             else:
                 print("--websocket_ping_timeout argument provided without a value.")
                 sys.exit(-1)
@@ -269,54 +283,51 @@ class RosbridgeWebsocketNode(Node):
         # Done with parameter handling                   #
         ##################################################
 
-        application = Application([(r"/", RosbridgeWebSocket), (r"", RosbridgeWebSocket)], **tornado_settings)
+        application = Application(
+            [(r"/", RosbridgeWebSocket), (r"", RosbridgeWebSocket)], **tornado_settings
+        )
 
         connected = False
         while not connected and self.context.ok():
             try:
+                ssl_options = None
                 if certfile is not None and keyfile is not None:
-                    application.listen(port, address, ssl_options={ "certfile": certfile, "keyfile": keyfile})
-                else:
-                    application.listen(port, address)
-                self.get_logger().info("Rosbridge WebSocket server started on port {}".format(port))
+                    ssl_options = {"certfile": certfile, "keyfile": keyfile}
+                sockets = bind_sockets(port, address)
+                actual_port = sockets[0].getsockname()[1]
+                server = HTTPServer(application, ssl_options=ssl_options)
+                server.add_sockets(sockets)
+                self.declare_parameter("actual_port", actual_port)
+                self.get_logger().info(f"Rosbridge WebSocket server started on port {actual_port}")
                 connected = True
-            except error as e:
+            except OSError as e:
                 self.get_logger().warn(
-                    "Unable to start server: {} "
-                    "Retrying in {}s.".format(e, retry_startup_delay))
+                    "Unable to start server: {} " "Retrying in {}s.".format(e, retry_startup_delay)
+                )
                 time.sleep(retry_startup_delay)
 
-class ROSThreadManager:
-    def __init__(self, args, node):
-        self.is_node_running = True
-        self.node = node
-        self.ros_thread = Thread(target=self.ros_spin)
-        self.ros_thread.start()
-    def ros_spin(self):
-        rclpy.logging.get_logger("thread_manager").info("ros thread started")
-        while self.is_node_running:
-            rclpy.spin_once(self.node, timeout_sec=0.01)
-        rclpy.logging.get_logger("thread_manager").info("ros thread terminatted")
-    def stop_thread(self):
-        self.is_node_running = False
-        self.ros_thread.join()
+
+def spin(rosbridge_websocket_node):
+    while rclpy.ok():
+        rclpy.spin_once(rosbridge_websocket_node, timeout_sec=0.01)
+        time.sleep(0.001)
+
+
 def main(args=None):
     if args is None:
         args = sys.argv
 
-    # add SIGINT termination
-    signal.signal(signal.SIGINT, lambda sig, frame: io_loop.add_callback_from_signal(io_loop.stop))
-
     rclpy.init(args=args)
-    io_loop = IOLoop.instance()
-    node = RosbridgeWebsocketNode(io_loop)
-    manager = ROSThreadManager(args, node)
-    io_loop.start()
+    node = RosbridgeWebsocketNode()
 
-    # after SIGINT recieved
-    manager.stop_thread()
+    spin_thread = Thread(target=lambda: spin(node), daemon=True)
+    spin_thread.start()
+    start_hook()
+
     node.destroy_node()
     rclpy.shutdown()
+    shutdown_hook()  # shutdown hook to stop the server
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

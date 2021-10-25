@@ -1,14 +1,13 @@
 import fnmatch
-from threading import Lock
 import time
-from rclpy.duration import Duration
-from rosbridge_library.internal.ros_loader import get_service_class
-from rosbridge_library.internal import message_conversion
+from threading import Lock
+
 from rosbridge_library.capability import Capability
-from rosbridge_library.util import string_types
+from rosbridge_library.internal import message_conversion
+from rosbridge_library.internal.ros_loader import get_service_class
 
 
-class AdvertisedServiceHandler():
+class AdvertisedServiceHandler:
 
     id_counter = 1
     responses = {}
@@ -21,7 +20,9 @@ class AdvertisedServiceHandler():
         self.service_type = service_type
         self.protocol = protocol
         # setup the service
-        self.service_handle = protocol.node_handle.create_service(get_service_class(service_type), service_name, self.handle_request)
+        self.service_handle = protocol.node_handle.create_service(
+            get_service_class(service_type), service_name, self.handle_request
+        )
 
     def next_id(self):
         id = self.id_counter
@@ -39,7 +40,7 @@ class AdvertisedServiceHandler():
             "op": "call_service",
             "id": request_id,
             "service": self.service_name,
-            "args": message_conversion.extract_values(req)
+            "args": message_conversion.extract_values(req),
         }
         self.protocol.send(request_message)
 
@@ -57,12 +58,13 @@ class AdvertisedServiceHandler():
                 self.protocol.log(
                     "warning",
                     "Service %s was unadvertised with a service call in progress, "
-                    "aborting service call with request ID %s" % (self.service_name, request_id))
+                    "aborting service call with request ID %s" % (self.service_name, request_id),
+                )
                 return None
 
-        resp = self.responses[request_id]
+        res = self.responses[request_id]
         del self.responses[request_id]
-        return resp
+        return res
 
     def graceful_shutdown(self, timeout):
         """
@@ -74,15 +76,16 @@ class AdvertisedServiceHandler():
         """
         with self.lock:
             self.shutdown_requested = True
-        start_time = self.protocol.node_handle.get_clock().now()
-        while self.protocol.node_handle.get_clock().now() - start_time < Duration(nanoseconds = timeout * 1e9):
+        start_time = time.clock()
+        while time.clock() - start_time < timeout:
             time.sleep(0)
         self.protocol.node_handle.destroy_service(self.service_handle)
+
 
 class AdvertiseService(Capability):
     services_glob = None
 
-    advertise_service_msg_fields = [(True, "service", string_types), (True, "type", string_types)]
+    advertise_service_msg_fields = [(True, "service", str), (True, "type", str)]
 
     def __init__(self, protocol):
         # Call superclass constructor
@@ -99,23 +102,39 @@ class AdvertiseService(Capability):
         service_name = message["service"]
 
         if AdvertiseService.services_glob is not None and AdvertiseService.services_glob:
-            self.protocol.log("debug", "Service security glob enabled, checking service: " + service_name)
+            self.protocol.log(
+                "debug",
+                "Service security glob enabled, checking service: " + service_name,
+            )
             match = False
             for glob in AdvertiseService.services_glob:
-                if (fnmatch.fnmatch(service_name, glob)):
-                    self.protocol.log("debug", "Found match with glob " + glob + ", continuing service advertisement...")
+                if fnmatch.fnmatch(service_name, glob):
+                    self.protocol.log(
+                        "debug",
+                        "Found match with glob " + glob + ", continuing service advertisement...",
+                    )
                     match = True
                     break
             if not match:
-                self.protocol.log("warn", "No match found for service, cancelling service advertisement for: " + service_name)
+                self.protocol.log(
+                    "warn",
+                    "No match found for service, cancelling service advertisement for: "
+                    + service_name,
+                )
                 return
         else:
-            self.protocol.log("debug", "No service security glob, not checking service advertisement.")
+            self.protocol.log(
+                "debug", "No service security glob, not checking service advertisement."
+            )
 
         # check for an existing entry
         if service_name in self.protocol.external_service_list.keys():
-            self.protocol.log("warn", "Duplicate service advertised. Overwriting %s." % service_name)
-            self.protocol.external_service_list[service_name].graceful_shutdown(0.1)
+            self.protocol.log(
+                "warn", "Duplicate service advertised. Overwriting %s." % service_name
+            )
+            self.protocol.external_service_list[service_name].service_handle.shutdown(
+                "Duplicate advertiser."
+            )
             del self.protocol.external_service_list[service_name]
 
         # setup and store the service information

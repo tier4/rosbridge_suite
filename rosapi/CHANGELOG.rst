@@ -2,6 +2,42 @@
 Changelog for package rosapi
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.0.8 (2021-08-26)
+------------------
+* Add missing test_depends and buildtool_depends (`#617 <https://github.com/RobotWebTools/rosbridge_suite/issues/617>`_)
+* Fix various Python code style and lint issues
+* Contributors: Christian Clauss, Jacob Bandes-Storch
+
+1.0.7 (2021-08-18)
+------------------
+* Load message definitions from .msg files; exclude /msg/ and include builtin_interfaces in combined definitions (`#597 <https://github.com/RobotWebTools/rosbridge_suite/issues/597>`_)
+* Fix typos discovered by codespell (`#600 <https://github.com/RobotWebTools/rosbridge_suite/issues/600>`_)
+* Contributors: Christian Clauss, Jacob Bandes-Storch
+
+1.0.6 (2021-08-17)
+------------------
+* Include /msg/ in type names (`#591 <https://github.com/RobotWebTools/rosbridge_suite/issues/591>`_)
+* Fix broken links in changelogs
+* Contributors: Jacob Bandes-Storch
+
+1.0.5 (2021-08-12)
+------------------
+
+1.0.4 (2021-08-11)
+------------------
+* Include /msg/ in type names (`#584 <https://github.com/RobotWebTools/rosbridge_suite/issues/584>`_)
+  It's more canonical for ROS 2 type names to be of the form `foo_msgs/msg/Bar` rather than just `foo_msgs/Bar`. This is occasionally reflected in documentation and command line tooling: https://docs.ros.org/en/galactic/Tutorials/Topics/Understanding-ROS2-Topics.html#ros2-interface-show
+  So rather than stripping out `/msg/`, we include it in the type definitions.
+  See also: https://github.com/RobotWebTools/rosmsg/pull/12
+* Contributors: Jacob Bandes-Storch
+
+1.0.3 (2021-08-03)
+------------------
+* Add TopicsAndRawTypes service (`#574 <https://github.com/RobotWebTools/rosbridge_suite/issues/574>`_, adapted from ROS 1 implementation `#452 <https://github.com/RobotWebTools/rosbridge_suite/issues/452>`_)
+* fix: remove json encoding before setting string params (`#521 <https://github.com/RobotWebTools/rosbridge_suite/issues/521>`_)
+* Update rosapi/proxy.py to match eloquent API (`#447 <https://github.com/RobotWebTools/rosbridge_suite/issues/447>`_)
+* Contributors: Jacob Bandes-Storch, justinscorringe, travipross
+
 1.0.2 (2019-09-24)
 ------------------
 
@@ -120,7 +156,7 @@ Changelog for package rosapi
 * correct default values for security globs
   also accept empty list as the default "do not check globs" value in addition to None.
   Finally, append rosapi service glob after processing command line input so it's not overwritten
-* Added services_glob to CallServices, added globs to rosbridge_tcp and rosbridge_udp, and other miscellanous fixes.
+* Added services_glob to CallServices, added globs to rosbridge_tcp and rosbridge_udp, and other miscellaneous fixes.
 * As per the suggestions of @T045T, fixed several typos, improved logging, and made some style fixes.
 * Fixed time object field definitions to match documentation.
 * Two minor fixes.
