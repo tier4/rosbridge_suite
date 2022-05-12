@@ -33,6 +33,23 @@ rosbridge_suite is released with a BSD license. For full terms and conditions, s
 ### Authors
 See the [AUTHORS](AUTHORS.md) file for a full list of contributors.
 
+### Quality Declaration
+This package claims to be in the **Quality Level 3** category, see the [Quality Declaration](/QUALITY_DECLARATION.md) for more details.
+
 ### Troubleshooting
 
 See the [TROUBLESHOOTING](TROUBLESHOOTING.md) doc for common problems and solutions.
+
+### Release process
+
+Releasing requires push access to [RobotWebTools/rosbridge_suite](https://github.com/RobotWebTools/rosbridge_suite) as well as [ros2-gbp/rosbridge_suite-release](https://github.com/ros2-gbp/rosbridge_suite-release). For more details on how the release process works, see the [bloom tutorial](https://docs.ros.org/en/galactic/How-To-Guides/Releasing-a-ROS-2-package-with-bloom.html).
+
+1. Run `catkin_generate_changelog` to update CHANGELOG.rst files.
+2. Manually edit and clean up the changelogs. Commit the changes.
+3. Run `catkin_prepare_release --bump [major/minor/patch]` to bump versions in package.xml and push changes to origin.
+4. Run bloom-release commands to create PRs to update rosdistro:
+    - `bloom-release --rosdistro foxy --track foxy rosbridge_suite`
+    - `bloom-release --rosdistro galactic --track galactic rosbridge_suite`
+    - `bloom-release --rosdistro rolling --track rolling rosbridge_suite`
+
+Once the PRs are merged, packages will be available for each distro after the next sync. Build/sync status can be viewed at: [foxy](http://repo.ros2.org/status_page/ros_foxy_default.html), [galactic](http://repo.ros2.org/status_page/ros_galactic_default.html), [rolling](http://repo.ros2.org/status_page/ros_rolling_default.html).

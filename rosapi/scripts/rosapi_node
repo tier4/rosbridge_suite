@@ -31,6 +31,7 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+import os
 import sys
 
 import rclpy
@@ -38,12 +39,13 @@ from rclpy.clock import Clock, ClockType
 from rclpy.node import Node
 
 from rosapi import glob_helper, objectutils, params, proxy
-from rosapi.msg import TypeDef
-from rosapi.srv import (
+from rosapi_msgs.msg import TypeDef
+from rosapi_msgs.srv import (
     DeleteParam,
     GetActionServers,
     GetParam,
     GetParamNames,
+    GetROSVersion,
     GetTime,
     HasParam,
     MessageDetails,
@@ -125,6 +127,7 @@ class Rosapi(Node):
         self.create_service(DeleteParam, "/rosapi/delete_param", self.delete_param)
         self.create_service(GetParamNames, "/rosapi/get_param_names", self.get_param_names)
         self.create_service(GetTime, "/rosapi/get_time", self.get_time)
+        self.create_service(GetROSVersion, "/rosapi/get_ros_version", self.get_ros_version)
 
     def get_globs(self):
         return glob_helper.get_globs(self)
@@ -290,6 +293,11 @@ class Rosapi(Node):
             "Malformed parameter name: {}; expecting <node_name>:<param_name>".format(param_name)
         )
 
+    def get_ros_version(self, request, response):
+        response.version = 2
+        response.distro = str(os.environ["ROS_DISTRO"])
+        return response
+
 
 def dict_to_typedef(typedefdict):
     typedef = TypeDef()
@@ -309,7 +317,10 @@ def main(args=None):
 
     rclpy.init(args=args)
     node = Rosapi()
-    rclpy.spin(node)
+    try:
+        rclpy.spin(node)
+    except KeyboardInterrupt:
+        node.get_logger().info("Exiting due to SIGINT")
 
     node.destroy_node()
     rclpy.shutdown()

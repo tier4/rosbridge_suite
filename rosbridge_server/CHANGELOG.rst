@@ -2,6 +2,31 @@
 Changelog for package rosbridge_server
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.1.2 (2022-01-03)
+------------------
+* [694] update DurabilityPolicy api that are being deprecated (`#695 <https://github.com/RobotWebTools/rosbridge_suite/issues/695>`_)
+* Contributors: Evan Flynn
+
+1.1.1 (2021-12-09)
+------------------
+* Allow subscribing to any qos profile when creating a subscriber (`#690 <https://github.com/RobotWebTools/rosbridge_suite/issues/690>`_)
+* Fix and add test for multiple subscribers to same topic (`#687 <https://github.com/RobotWebTools/rosbridge_suite/issues/687>`_)
+* Delete unsupported TCP and UDP server implementations in ROS 2 branch (`#685 <https://github.com/RobotWebTools/rosbridge_suite/issues/685>`_)
+* Fix error when advertising duplicate service (`#683 <https://github.com/RobotWebTools/rosbridge_suite/issues/683>`_)
+* Fix incoming service calls (`#669 <https://github.com/RobotWebTools/rosbridge_suite/issues/669>`_)
+* Replace busy wait in AdvertiseService with async handler (`#666 <https://github.com/RobotWebTools/rosbridge_suite/issues/666>`_)
+* Refactor smoke test to make WebSocket test harness reusable (`#675 <https://github.com/RobotWebTools/rosbridge_suite/issues/675>`_)
+* Contributors: Domenic Rodriguez, Jacob Bandes-Storch, Roman Shtylman
+
+1.1.0 (2021-10-22)
+------------------
+* Exit cleanly on SIGINT; remove sleep in test (`#667 <https://github.com/RobotWebTools/rosbridge_suite/issues/667>`_)
+* Fix unused variables: flake8 --select=F841 (`#623 <https://github.com/RobotWebTools/rosbridge_suite/issues/623>`_)
+* Fix undefined name in rosbridge_websocket (`#659 <https://github.com/RobotWebTools/rosbridge_suite/issues/659>`_)
+* Port `#464 <https://github.com/RobotWebTools/rosbridge_suite/issues/464>`_, `#478 <https://github.com/RobotWebTools/rosbridge_suite/issues/478>`_, `#496 <https://github.com/RobotWebTools/rosbridge_suite/issues/496>`_, and `#502 <https://github.com/RobotWebTools/rosbridge_suite/issues/502>`_ from ROS1 branch (`#663 <https://github.com/RobotWebTools/rosbridge_suite/issues/663>`_)
+* Add pre-commit, format with black and isort (`#648 <https://github.com/RobotWebTools/rosbridge_suite/issues/648>`_)
+* Contributors: Adrian Macneil, Christian Clauss, Domenic Rodriguez, Jacob Bandes-Storch, Kenji Miyake
+
 1.0.8 (2021-08-26)
 ------------------
 * Add missing test_depends and buildtool_depends

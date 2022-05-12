@@ -33,7 +33,7 @@
 
 from threading import Lock
 
-from rclpy.qos import HistoryPolicy
+from rclpy.qos import DurabilityPolicy, QoSProfile, ReliabilityPolicy
 from rosbridge_library.internal import ros_loader
 from rosbridge_library.internal.message_conversion import msg_class_type_repr
 from rosbridge_library.internal.outgoing_message import OutgoingMessage
@@ -101,27 +101,36 @@ class MultiSubscriber:
         if topic_type is not None and topic_type != msg_type_string:
             raise TypeConflictException(topic, topic_type, msg_type_string)
 
-        # Get publishers info
-        publishers_info = node_handle.get_publishers_info_by_topic(topic)
+        # Certain combinations of publisher and subscriber QoS parameters are
+        # incompatible. Here we make a "best effort" attempt to match existing
+        # publishers for the requested topic. This is not perfect because more
+        # publishers may come online after our subscriber is set up, but we try
+        # to provide sane defaults. For more information, see:
+        # - https://docs.ros.org/en/rolling/Concepts/About-Quality-of-Service-Settings.html
+        # - https://github.com/RobotWebTools/rosbridge_suite/issues/551
+        qos = QoSProfile(
+            depth=10,
+            durability=DurabilityPolicy.VOLATILE,
+            reliability=ReliabilityPolicy.RELIABLE,
+        )
 
-        # Select QoS
-        default_qos_profile = 10
-        if publishers_info:
-            qos_profile = publishers_info[0].qos_profile
-            qos_profile.history = HistoryPolicy.KEEP_LAST
-            qos_profile.depth = 10
-        else:
-            qos_profile = default_qos_profile
+        infos = node_handle.get_publishers_info_by_topic(topic)
+        if any(pub.qos_profile.durability == DurabilityPolicy.TRANSIENT_LOCAL for pub in infos):
+            qos.durability = DurabilityPolicy.TRANSIENT_LOCAL
+        if any(pub.qos_profile.reliability == ReliabilityPolicy.BEST_EFFORT for pub in infos):
+            qos.reliability = ReliabilityPolicy.BEST_EFFORT
 
         # Create the subscriber and associated member variables
         # Subscriptions is initialized with the current client to start with.
         self.subscriptions = {client_id: callback}
         self.lock = Lock()
-        self.topic = topic
         self.msg_class = msg_class
         self.node_handle = node_handle
+        self.topic = topic
+        self.qos = qos
+
         self.subscriber = node_handle.create_subscription(
-            msg_class, topic, self.callback, qos_profile, raw=raw
+            msg_class, topic, self.callback, qos, raw=raw
         )
         self.new_subscriber = None
         self.new_subscriptions = {}
@@ -163,7 +172,7 @@ class MultiSubscriber:
             self.new_subscriptions.update({client_id: callback})
             if self.new_subscriber is None:
                 self.new_subscriber = self.node_handle.create_subscription(
-                    self.msg_class, self.topic, self._new_sub_callback, 10
+                    self.msg_class, self.topic, self._new_sub_callback, self.qos
                 )
 
     def unsubscribe(self, client_id):
@@ -224,7 +233,7 @@ class MultiSubscriber:
         subscriptors.
         """
         with self.lock:
-            self.callback(msg, [self.new_subscriptions.values()])
+            self.callback(msg, self.new_subscriptions.values())
             self.subscriptions.update(self.new_subscriptions)
             self.new_subscriptions = {}
             self.node_handle.destroy_subscription(self.new_subscriber)

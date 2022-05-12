@@ -185,18 +185,31 @@ class TestMessageConversion(unittest.TestCase):
             self.do_primitive_test(x, "std_msgs/String")
 
     def test_time_msg(self):
+        now_inst = c._to_inst("now", "builtin_interfaces/Time", "builtin_interfaces/Time")
+        self.assertTrue("sec" in now_inst.get_fields_and_field_types())
+        self.assertTrue("nanosec" in now_inst.get_fields_and_field_types())
+
         msg = {"sec": 3, "nanosec": 5}
         self.do_test(msg, "builtin_interfaces/Time")
 
         msg = {"times": [{"sec": 3, "nanosec": 5}, {"sec": 2, "nanosec": 7}]}
-        self.do_test(msg, "rosbridge_library/TestTimeArray")
+        self.do_test(msg, "rosbridge_test_msgs/TestTimeArray")
+
+        # For ROS1 compatibility
+        inst1 = c._to_inst(
+            {"sec": 3, "nanosec": 5}, "builtin_interfaces/Time", "builtin_interfaces/Time"
+        )
+        inst2 = c._to_inst(
+            {"secs": 3, "nsecs": 5}, "builtin_interfaces/Time", "builtin_interfaces/Time"
+        )
+        self.assertEqual(inst1, inst2)
 
     def test_duration_msg(self):
         msg = {"sec": 3, "nanosec": 5}
         self.do_test(msg, "builtin_interfaces/Duration")
 
         msg = {"durations": [{"sec": 3, "nanosec": 5}, {"sec": 2, "nanosec": 7}]}
-        self.do_test(msg, "rosbridge_library/TestDurationArray")
+        self.do_test(msg, "rosbridge_test_msgs/TestDurationArray")
 
     def test_header_msg(self):
         msg = {
@@ -206,11 +219,11 @@ class TestMessageConversion(unittest.TestCase):
         self.do_test(msg, "std_msgs/Header")
 
         msg = {"header": msg}
-        self.do_test(msg, "rosbridge_library/TestHeader")
-        self.do_test(msg, "rosbridge_library/TestHeaderTwo")
+        self.do_test(msg, "rosbridge_test_msgs/TestHeader")
+        self.do_test(msg, "rosbridge_test_msgs/TestHeaderTwo")
 
         msg = {"header": [msg["header"], msg["header"], msg["header"]]}
-        self.do_test(msg, "rosbridge_library/TestHeaderArray")
+        self.do_test(msg, "rosbridge_test_msgs/TestHeaderArray")
 
     def test_assorted_msgs(self):
         assortedmsgs = [
@@ -245,7 +258,7 @@ class TestMessageConversion(unittest.TestCase):
             return inst.data
 
         for msgtype in ["TestChar", "TestUInt8"]:
-            rostype = "rosbridge_library/" + msgtype
+            rostype = "rosbridge_test_msgs/" + msgtype
 
             # From List[int]
             int8s = list(range(0, 256))
@@ -258,7 +271,7 @@ class TestMessageConversion(unittest.TestCase):
             np.testing.assert_array_equal(ret, np.array(int8s))
 
         for msgtype in ["TestUInt8FixedSizeArray16"]:
-            rostype = "rosbridge_library/" + msgtype
+            rostype = "rosbridge_test_msgs/" + msgtype
 
             # From List[int]
             int8s = list(range(0, 16))
@@ -269,3 +282,27 @@ class TestMessageConversion(unittest.TestCase):
             b64str_int8s = standard_b64encode(bytes(int8s)).decode("ascii")
             ret = test_int8_msg(rostype, b64str_int8s)
             np.testing.assert_array_equal(ret, np.array(int8s))
+
+    def test_float32array(self):
+        def test_float32_msg(rostype, data):
+            msg = {"data": data}
+            inst = ros_loader.get_message_instance(rostype)
+            c.populate_instance(msg, inst)
+            self.validate_instance(inst)
+            return inst.data
+
+        for msgtype in ["TestFloat32Array"]:
+            rostype = "rosbridge_test_msgs/" + msgtype
+
+            # From List[float]
+            floats = list(map(float, range(0, 256)))
+            ret = test_float32_msg(rostype, floats)
+            np.testing.assert_array_equal(ret, np.array(floats))
+
+        for msgtype in ["TestFloat32BoundedArray"]:
+            rostype = "rosbridge_test_msgs/" + msgtype
+
+            # From List[float]
+            floats = list(map(float, range(0, 16)))
+            ret = test_float32_msg(rostype, floats)
+            np.testing.assert_array_equal(ret, np.array(floats))
